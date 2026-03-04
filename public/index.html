@@ -234,23 +234,25 @@
         .lb-score { color: #aaa; font-weight: 600; font-size: 13px; }
 
         /* ========== HUD ========== */
-        #hud { position: fixed; top: 0; left: 0; right: 0; pointer-events: none; z-index: 10; }
-        #xp-bar-container { width: 100%; height: 6px; background: rgba(0,0,0,0.7); border-bottom: 1px solid rgba(100,200,255,0.3); }
-        #xp-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #00bfff, #00ff88); transition: width 0.3s ease; box-shadow: 0 0 10px rgba(0,191,255,0.5); }
-        #stats-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: rgba(0,0,0,0.5); flex-wrap: wrap; gap: 4px; }
-        .stat { color: #fff; font-size: clamp(11px, 2.5vw, 14px); font-weight: 600; text-shadow: 0 0 5px rgba(0,0,0,0.8); }
+        #hud { position: fixed; top: 0; left: 0; right: 0; pointer-events: none; z-index: 10; padding-top: env(safe-area-inset-top, 0px); }
+        #xp-bar-container { width: 100%; height: 5px; background: rgba(0,0,0,0.8); }
+        #xp-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #00bfff, #00ff88); transition: width 0.3s ease; box-shadow: 0 0 8px rgba(0,191,255,0.6); }
+        #stats-bar { display: flex; justify-content: space-between; align-items: center; padding: 4px 10px; background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 100%); gap: 6px; }
+        .stat { color: rgba(255,255,255,0.9); font-size: clamp(10px, 2.2vw, 13px); font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,0.9); display: flex; align-items: center; gap: 3px; }
         .stat span { color: #ffd700; }
-        #weapon-icons { display: flex; gap: 4px; }
-        .weapon-icon { width: clamp(28px, 7vw, 36px); height: clamp(28px, 7vw, 36px); background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: clamp(14px, 3.5vw, 18px); position: relative; }
-        .weapon-icon .wlvl { position: absolute; bottom: -2px; right: -2px; background: #ffd700; color: #000; font-size: 8px; font-weight: bold; width: 13px; height: 13px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        #weapon-icons { display: flex; gap: 3px; }
+        .weapon-icon { width: clamp(26px, 6vw, 34px); height: clamp(26px, 6vw, 34px); background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: clamp(13px, 3vw, 17px); position: relative; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+        .weapon-icon .wlvl { position: absolute; bottom: -2px; right: -2px; background: linear-gradient(135deg, #ffd700, #ff8f00); color: #000; font-size: 7px; font-weight: bold; width: 12px; height: 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 
-        #hp-bar-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); width: clamp(140px, 40vw, 200px); height: 10px; background: rgba(0,0,0,0.7); border-radius: 5px; border: 1px solid rgba(255,50,50,0.5); pointer-events: none; z-index: 10; }
-        #hp-bar { height: 100%; width: 100%; background: linear-gradient(90deg, #ff3333, #ff6666); border-radius: 4px; transition: width 0.2s ease; }
-        #hp-text { position: fixed; bottom: 112px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 11px; font-weight: bold; pointer-events: none; z-index: 10; text-shadow: 0 0 4px #000; }
+        /* HP bar — centered bottom, above joystick zones */
+        #hp-bar-container { position: fixed; bottom: 46%; left: 50%; transform: translateX(-50%); width: clamp(100px, 28vw, 180px); height: 8px; background: rgba(0,0,0,0.7); border-radius: 5px; border: 1px solid rgba(255,50,50,0.4); pointer-events: none; z-index: 16; }
+        #hp-bar { height: 100%; width: 100%; background: linear-gradient(90deg, #ff2222, #ff5555); border-radius: 4px; transition: width 0.2s ease; box-shadow: 0 0 6px rgba(255,50,50,0.4); }
+        #hp-text { position: fixed; bottom: calc(46% + 10px); left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.8); font-size: 10px; font-weight: bold; pointer-events: none; z-index: 16; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
 
         #kill-flash { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 5; background: rgba(255,255,255,0); transition: background 0.05s ease; }
 
-        #minimap { position: fixed; bottom: 120px; right: 10px; width: 90px; height: 90px; border: 2px solid rgba(255,255,255,0.15); border-radius: 6px; background: rgba(0,0,0,0.5); pointer-events: none; z-index: 10; }
+        /* Minimap — top right on mobile, bottom right on desktop */
+        #minimap { position: fixed; top: 50px; right: 10px; width: 80px; height: 80px; border: 1.5px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgba(0,0,0,0.5); pointer-events: none; z-index: 10; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
 
         /* ========== UPGRADE SCREEN ========== */
         #upgrade-screen { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; flex-direction: column; animation: fadeIn 0.3s ease; padding: 16px; }
@@ -280,19 +282,19 @@
             top: 50px;
             right: 62px;
             display: none;
-            gap: 6px;
+            gap: 4px;
             z-index: 20;
             pointer-events: all;
         }
         .audio-controls.active { display: flex; }
         .audio-btn {
-            width: 36px;
-            height: 36px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             background: rgba(0,0,0,0.5);
-            border: 2px solid rgba(255,255,255,0.2);
+            border: 1.5px solid rgba(255,255,255,0.15);
             color: #fff;
-            font-size: 16px;
+            font-size: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -326,13 +328,13 @@
             position: fixed;
             top: 50px;
             right: 12px;
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             background: rgba(0,0,0,0.5);
-            border: 2px solid rgba(255,255,255,0.2);
+            border: 1.5px solid rgba(255,255,255,0.15);
             color: #fff;
-            font-size: 20px;
+            font-size: 18px;
             display: none;
             align-items: center;
             justify-content: center;
@@ -382,54 +384,84 @@
         }
         .pause-btns .btn { width: 100%; }
 
-        /* ========== MOBILE JOYSTICK ========== */
-        #joystick-zone {
+        /* ========== MOBILE JOYSTICK (DUAL) ========== */
+        .joystick-zone {
             position: fixed;
             bottom: 0;
-            left: 0;
-            width: 55%;
-            height: 50%;
+            width: 50%;
+            height: 55%;
             z-index: 15;
             pointer-events: auto;
             display: none;
         }
-        #joystick-zone.active { display: block; }
-        #joystick-base {
+        .joystick-zone.active { display: block; }
+        #joystick-zone-left { left: 0; }
+        #joystick-zone-right { right: 0; }
+        .joystick-base {
             position: absolute;
-            width: 130px;
-            height: 130px;
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.08);
-            border: 2px solid rgba(255,255,255,0.2);
+            background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+            border: 2px solid rgba(255,255,255,0.15);
             display: none;
             pointer-events: none;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3), inset 0 0 30px rgba(255,255,255,0.03);
         }
-        #joystick-stick {
+        .joystick-base.aim { border-color: rgba(255,68,68,0.25); box-shadow: 0 0 20px rgba(255,0,0,0.1), inset 0 0 30px rgba(255,68,68,0.03); }
+        .joystick-stick {
             position: absolute;
-            width: 56px;
-            height: 56px;
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,255,255,0.35), rgba(255,255,255,0.15));
-            border: 2px solid rgba(255,255,255,0.4);
+            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.4), rgba(255,255,255,0.12));
+            border: 2px solid rgba(255,255,255,0.35);
             display: none;
             pointer-events: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.4);
         }
+        .joystick-stick.aim {
+            background: radial-gradient(circle at 35% 35%, rgba(255,100,100,0.45), rgba(255,60,60,0.15));
+            border-color: rgba(255,100,100,0.4);
+            box-shadow: 0 2px 10px rgba(255,0,0,0.3);
+        }
+        .joystick-label {
+            position: absolute;
+            bottom: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.15);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            pointer-events: none;
+            width: 100%;
+            text-align: center;
+            display: none;
+        }
+        .joystick-zone.active .joystick-label { display: block; }
 
         /* ========== MOBILE RESPONSIVE ========== */
+        @media (max-width: 900px) and (orientation: landscape) {
+            #stats-bar { padding: 2px 8px; padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
+            #minimap { top: 38px; right: max(10px, env(safe-area-inset-right, 8px)); width: 60px; height: 60px; }
+            #pause-btn { top: 36px; right: max(10px, env(safe-area-inset-right, 8px)); width: 36px; height: 36px; font-size: 16px; }
+            .audio-controls { top: 36px; right: calc(max(10px, env(safe-area-inset-right, 8px)) + 42px); }
+            .audio-btn { width: 30px; height: 30px; font-size: 13px; }
+            #hp-bar-container { bottom: 48%; width: clamp(80px, 20vw, 140px); height: 6px; }
+            #hp-text { bottom: calc(48% + 8px); font-size: 9px; }
+        }
         @media (max-width: 600px) {
-            #hp-bar-container { bottom: 140px; }
-            #hp-text { bottom: 152px; }
-            #minimap { width: 70px; height: 70px; bottom: 150px; right: 8px; }
             .panel { padding: 20px; }
             .stats-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
-            #pause-btn { top: 44px; right: 8px; width: 40px; height: 40px; font-size: 18px; }
-            .audio-controls { top: 44px; right: 54px; }
-            .audio-btn { width: 32px; height: 32px; font-size: 14px; }
+            #minimap { top: 44px; right: 8px; width: 56px; height: 56px; }
+            #pause-btn { top: 42px; right: 8px; width: 38px; height: 38px; font-size: 16px; }
+            .audio-controls { top: 42px; right: 52px; }
+            .audio-btn { width: 30px; height: 30px; font-size: 12px; }
         }
 
         @media (hover: none) and (pointer: coarse) {
             /* Touch device detected */
-            #joystick-zone { display: block; }
+            .joystick-zone { display: block; }
         }
 
         /* Tab navigation for panels */
@@ -519,10 +551,16 @@
         </div>
     </div>
 
-    <!-- ========== MOBILE JOYSTICK ========== -->
-    <div id="joystick-zone">
-        <div id="joystick-base"></div>
-        <div id="joystick-stick"></div>
+    <!-- ========== MOBILE JOYSTICKS (DUAL) ========== -->
+    <div id="joystick-zone-left" class="joystick-zone">
+        <div id="joystick-base-left" class="joystick-base"></div>
+        <div id="joystick-stick-left" class="joystick-stick"></div>
+        <div class="joystick-label">Move</div>
+    </div>
+    <div id="joystick-zone-right" class="joystick-zone">
+        <div id="joystick-base-right" class="joystick-base aim"></div>
+        <div id="joystick-stick-right" class="joystick-stick aim"></div>
+        <div class="joystick-label">Aim</div>
     </div>
 
     <!-- ========== UPGRADE SCREEN ========== -->

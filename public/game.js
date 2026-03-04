@@ -333,73 +333,141 @@ class ZoneEffect {
 }
 
 // ============================================================
-// MOBILE JOYSTICK CONTROLLER
+// MOBILE DUAL JOYSTICK CONTROLLER
+// Left joystick = movement, Right joystick = aim direction
+// Both appear where the player touches in their respective zones
 // ============================================================
 class JoystickController {
     constructor() {
-        this.zone = document.getElementById('joystick-zone');
-        this.base = document.getElementById('joystick-base');
-        this.stick = document.getElementById('joystick-stick');
-        this.active = false;
-        this.touchId = null;
-        this.originX = 0;
-        this.originY = 0;
-        this.dx = 0;
-        this.dy = 0;
-        this.maxDist = 55;
         this.isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
+        // Left joystick (movement)
+        this.leftZone = document.getElementById('joystick-zone-left');
+        this.leftBase = document.getElementById('joystick-base-left');
+        this.leftStick = document.getElementById('joystick-stick-left');
+        this.leftActive = false;
+        this.leftTouchId = null;
+        this.leftOriginX = 0;
+        this.leftOriginY = 0;
+        this.dx = 0;
+        this.dy = 0;
+
+        // Right joystick (aim)
+        this.rightZone = document.getElementById('joystick-zone-right');
+        this.rightBase = document.getElementById('joystick-base-right');
+        this.rightStick = document.getElementById('joystick-stick-right');
+        this.rightActive = false;
+        this.rightTouchId = null;
+        this.rightOriginX = 0;
+        this.rightOriginY = 0;
+        this.aimX = 0;
+        this.aimY = 0;
+        this.aiming = false;
+
+        this.maxDist = 50;
+        this.active = false; // compat: true if left joystick is active
+
         if (this.isMobile) {
-            this.zone.classList.add('active');
+            this.leftZone.classList.add('active');
+            this.rightZone.classList.add('active');
             this.bindTouch();
         }
     }
 
-    bindTouch() {
-        this.zone.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (this.touchId !== null) return;
-            const t = e.changedTouches[0];
-            this.touchId = t.identifier;
-            this.originX = t.clientX;
-            this.originY = t.clientY;
-            this.active = true;
+    _showJoystick(base, stick, x, y) {
+        base.style.display = 'block';
+        stick.style.display = 'block';
+        base.style.left = (x - 60) + 'px';
+        base.style.top = (y - 60) + 'px';
+        stick.style.left = (x - 26) + 'px';
+        stick.style.top = (y - 26) + 'px';
+    }
 
-            this.base.style.display = 'block';
-            this.stick.style.display = 'block';
-            this.base.style.left = (this.originX - 65) + 'px';
-            this.base.style.top = (this.originY - 65) + 'px';
-            this.stick.style.left = (this.originX - 28) + 'px';
-            this.stick.style.top = (this.originY - 28) + 'px';
+    _hideJoystick(base, stick) {
+        base.style.display = 'none';
+        stick.style.display = 'none';
+    }
+
+    _moveStick(stick, originX, originY, rawDx, rawDy) {
+        stick.style.left = (originX + rawDx - 26) + 'px';
+        stick.style.top = (originY + rawDy - 26) + 'px';
+    }
+
+    _clampDist(rawDx, rawDy) {
+        const d = Math.sqrt(rawDx * rawDx + rawDy * rawDy);
+        if (d > this.maxDist) {
+            rawDx = (rawDx / d) * this.maxDist;
+            rawDy = (rawDy / d) * this.maxDist;
+        }
+        return { dx: rawDx, dy: rawDy, norm: d > 0 ? Math.min(d, this.maxDist) / this.maxDist : 0 };
+    }
+
+    bindTouch() {
+        // LEFT ZONE — touchstart
+        this.leftZone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (this.leftTouchId !== null) return;
+            const t = e.changedTouches[0];
+            this.leftTouchId = t.identifier;
+            this.leftOriginX = t.clientX;
+            this.leftOriginY = t.clientY;
+            this.leftActive = true;
+            this.active = true;
+            this._showJoystick(this.leftBase, this.leftStick, t.clientX, t.clientY);
         }, { passive: false });
 
+        // RIGHT ZONE — touchstart
+        this.rightZone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (this.rightTouchId !== null) return;
+            const t = e.changedTouches[0];
+            this.rightTouchId = t.identifier;
+            this.rightOriginX = t.clientX;
+            this.rightOriginY = t.clientY;
+            this.rightActive = true;
+            this.aiming = true;
+            this._showJoystick(this.rightBase, this.rightStick, t.clientX, t.clientY);
+        }, { passive: false });
+
+        // Global touchmove
         window.addEventListener('touchmove', (e) => {
-            if (!this.active) return;
             for (const t of e.changedTouches) {
-                if (t.identifier !== this.touchId) continue;
-                let rawDx = t.clientX - this.originX;
-                let rawDy = t.clientY - this.originY;
-                const d = Math.sqrt(rawDx * rawDx + rawDy * rawDy);
-                if (d > this.maxDist) {
-                    rawDx = (rawDx / d) * this.maxDist;
-                    rawDy = (rawDy / d) * this.maxDist;
+                // Left joystick
+                if (t.identifier === this.leftTouchId && this.leftActive) {
+                    const raw = this._clampDist(t.clientX - this.leftOriginX, t.clientY - this.leftOriginY);
+                    this.dx = raw.dx / this.maxDist;
+                    this.dy = raw.dy / this.maxDist;
+                    this._moveStick(this.leftStick, this.leftOriginX, this.leftOriginY, raw.dx, raw.dy);
                 }
-                this.dx = rawDx / this.maxDist;
-                this.dy = rawDy / this.maxDist;
-                this.stick.style.left = (this.originX + rawDx - 28) + 'px';
-                this.stick.style.top = (this.originY + rawDy - 28) + 'px';
+                // Right joystick
+                if (t.identifier === this.rightTouchId && this.rightActive) {
+                    const raw = this._clampDist(t.clientX - this.rightOriginX, t.clientY - this.rightOriginY);
+                    this.aimX = raw.dx / this.maxDist;
+                    this.aimY = raw.dy / this.maxDist;
+                    this._moveStick(this.rightStick, this.rightOriginX, this.rightOriginY, raw.dx, raw.dy);
+                }
             }
         }, { passive: false });
 
+        // Global touchend / touchcancel
         const endTouch = (e) => {
             for (const t of e.changedTouches) {
-                if (t.identifier !== this.touchId) continue;
-                this.active = false;
-                this.touchId = null;
-                this.dx = 0;
-                this.dy = 0;
-                this.base.style.display = 'none';
-                this.stick.style.display = 'none';
+                if (t.identifier === this.leftTouchId) {
+                    this.leftActive = false;
+                    this.leftTouchId = null;
+                    this.active = false;
+                    this.dx = 0;
+                    this.dy = 0;
+                    this._hideJoystick(this.leftBase, this.leftStick);
+                }
+                if (t.identifier === this.rightTouchId) {
+                    this.rightActive = false;
+                    this.rightTouchId = null;
+                    this.aiming = false;
+                    this.aimX = 0;
+                    this.aimY = 0;
+                    this._hideJoystick(this.rightBase, this.rightStick);
+                }
             }
         };
         window.addEventListener('touchend', endTouch);
@@ -408,6 +476,13 @@ class JoystickController {
 
     getInput() {
         return { x: this.dx, y: this.dy };
+    }
+
+    getAim() {
+        if (!this.aiming && !this.rightActive) return null;
+        const len = Math.sqrt(this.aimX * this.aimX + this.aimY * this.aimY);
+        if (len < 0.15) return null;
+        return { x: this.aimX / len, y: this.aimY / len };
     }
 }
 
@@ -437,8 +512,8 @@ class Game {
     resize() {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
-        this.miniCanvas.width = this.joystick.isMobile ? 70 : 90;
-        this.miniCanvas.height = this.joystick.isMobile ? 70 : 90;
+        this.miniCanvas.width = this.joystick.isMobile ? 60 : 80;
+        this.miniCanvas.height = this.joystick.isMobile ? 60 : 80;
     }
 
     bindEvents() {
@@ -525,7 +600,8 @@ class Game {
         document.getElementById('pause-btn').classList.toggle('active', visible);
         document.getElementById('audio-controls').classList.toggle('active', visible);
         if (this.joystick.isMobile) {
-            document.getElementById('joystick-zone').classList.toggle('active', visible);
+            document.getElementById('joystick-zone-left').classList.toggle('active', visible);
+            document.getElementById('joystick-zone-right').classList.toggle('active', visible);
         }
     }
 
@@ -616,7 +692,17 @@ class Game {
         if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
             const len = Math.sqrt(dx * dx + dy * dy);
             if (len > 1) { dx /= len; dy /= len; }
-            this.lastFacing = { x: dx / Math.max(Math.abs(dx), Math.abs(dy), 0.01), y: dy / Math.max(Math.abs(dx), Math.abs(dy), 0.01) };
+            // Only update facing from movement if not using aim joystick
+            const aim = this.joystick.getAim();
+            if (!aim) {
+                this.lastFacing = { x: dx / Math.max(Math.abs(dx), Math.abs(dy), 0.01), y: dy / Math.max(Math.abs(dx), Math.abs(dy), 0.01) };
+            }
+        }
+
+        // Right joystick aim overrides facing direction
+        const aim = this.joystick.getAim();
+        if (aim) {
+            this.lastFacing = { x: aim.x, y: aim.y };
         }
 
         p.x += dx * p.speed * dt;
