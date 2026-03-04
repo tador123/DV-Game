@@ -58,13 +58,29 @@ app.post('/api/login', (req, res) => {
     // Check if returning user (by token in body)
     if (req.body.token && db.users[req.body.token]) {
         const user = db.users[req.body.token];
+        // If name is changing, check uniqueness
+        if (user.name.toLowerCase() !== cleanName.toLowerCase()) {
+            const nameTaken = Object.values(db.users).some(
+                u => u.id !== user.id && u.name.toLowerCase() === cleanName.toLowerCase()
+            );
+            if (nameTaken) {
+                return res.status(409).json({ error: 'Name already taken. Choose a different name.' });
+            }
+        }
         user.name = cleanName;
         user.lastLogin = Date.now();
         saveData(db);
         return res.json({ token: req.body.token, user });
     }
 
-    // New guest user
+    // New guest user — enforce unique name
+    const nameTaken = Object.values(db.users).some(
+        u => u.name.toLowerCase() === cleanName.toLowerCase()
+    );
+    if (nameTaken) {
+        return res.status(409).json({ error: 'Name already taken. Choose a different name.' });
+    }
+
     const token = uuidv4();
     const user = {
         id: token,

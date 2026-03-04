@@ -923,6 +923,10 @@ class Game {
         const pc = e.isBoss ? 30 : 8;
         for (let i = 0; i < pc; i++) this.addParticle(e.x, e.y, e.color, rand(40, 150), rand(0.2, 0.5), rand(2, e.isBoss ? 8 : 5));
         this.screenShake.intensity = Math.min(15, this.screenShake.intensity + (e.isBoss ? 12 : 2));
+
+        // Heal player on kill (2 HP normal, 15 HP boss, capped at max)
+        const healAmount = e.isBoss ? 15 : 2;
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
     }
 
     // ========================================================
