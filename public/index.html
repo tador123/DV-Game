@@ -398,75 +398,7 @@
         }
         .pause-btns .btn { width: 100%; }
 
-        /* ========== MOBILE JOYSTICK (DUAL — FIXED POSITION) ========== */
-        .joystick-zone {
-            position: fixed;
-            bottom: 0;
-            width: 50%;
-            height: 55%;
-            z-index: 15;
-            pointer-events: auto;
-            display: none;
-            touch-action: none;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-        .joystick-zone.active { display: block !important; }
-        #joystick-zone-left { left: 0; }
-        #joystick-zone-right { right: 0; }
-        .joystick-base {
-            position: absolute;
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
-            border: 2px solid rgba(255,255,255,0.15);
-            pointer-events: none;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3), inset 0 0 30px rgba(255,255,255,0.03);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            touch-action: none;
-            transform: translateZ(0);
-            -webkit-transform: translateZ(0);
-            will-change: transform;
-        }
-        #joystick-base-left { left: 30px; bottom: 30px; }
-        #joystick-base-right { right: 30px; bottom: 30px; }
-        .joystick-base.aim { border-color: rgba(255,68,68,0.25); box-shadow: 0 0 20px rgba(255,0,0,0.1), inset 0 0 30px rgba(255,68,68,0.03); }
-        .joystick-stick {
-            position: absolute;
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.4), rgba(255,255,255,0.12));
-            border: 2px solid rgba(255,255,255,0.35);
-            pointer-events: none;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.4);
-            /* Centered on base: (120-52)/2 = 34 — NEVER changes */
-            left: 34px;
-            top: 34px;
-            touch-action: none;
-            transform: translateZ(0);
-            -webkit-transform: translateZ(0);
-            will-change: transform;
-        }
-        .joystick-stick.aim {
-            background: radial-gradient(circle at 35% 35%, rgba(255,100,100,0.45), rgba(255,60,60,0.15));
-            border-color: rgba(255,100,100,0.4);
-            box-shadow: 0 2px 10px rgba(255,0,0,0.3);
-        }
-        .joystick-label {
-            position: absolute;
-            font-size: 10px;
-            font-weight: 700;
-            color: rgba(255,255,255,0.2);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            pointer-events: none;
-            z-index: 1;
-        }
+        /* Joystick is now canvas-drawn — no DOM elements needed */
 
         /* ========== MOBILE RESPONSIVE ========== */
         @media (max-width: 900px) and (orientation: landscape) {
@@ -611,8 +543,6 @@
             #clan-panel .btn { font-size: 9px; padding: 5px 10px; }
         }
 
-        /* Joystick visibility controlled only by .active class from JS */
-
         /* Tab navigation for panels */
         .tab-bar {
             display: flex;
@@ -700,19 +630,7 @@
         </div>
     </div>
 
-    <!-- ========== MOBILE JOYSTICKS (DUAL — FIXED POSITION) ========== -->
-    <div id="joystick-zone-left" class="joystick-zone">
-        <div id="joystick-base-left" class="joystick-base">
-            <div id="joystick-stick-left" class="joystick-stick"></div>
-            <div class="joystick-label">Move</div>
-        </div>
-    </div>
-    <div id="joystick-zone-right" class="joystick-zone">
-        <div id="joystick-base-right" class="joystick-base aim">
-            <div id="joystick-stick-right" class="joystick-stick aim"></div>
-            <div class="joystick-label">Aim</div>
-        </div>
-    </div>
+    <!-- Joysticks are now drawn directly on the game canvas -->
 
     <!-- ========== UPGRADE SCREEN ========== -->
     <div id="upgrade-screen">

@@ -334,48 +334,46 @@ class ZoneEffect {
 
 // ============================================================
 // MOBILE DUAL JOYSTICK CONTROLLER
-// Left joystick = movement, Right joystick = aim direction
-// Stick stays visually centered — no movement animation
-// Only reads touch direction as input
+// Canvas-drawn joysticks — always at fixed screen positions
+// Left = movement, Right = aim
 // ============================================================
 class JoystickController {
-    constructor() {
+    constructor(canvas) {
+        this.canvas = canvas;
         this.isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
-        // Left joystick (movement)
-        this.leftZone = document.getElementById('joystick-zone-left');
-        this.leftBase = document.getElementById('joystick-base-left');
+        // Joystick visual config
+        this.baseRadius = 50;
+        this.stickRadius = 22;
+
+        // Left joystick state
         this.leftActive = false;
         this.leftTouchId = null;
-        this.leftBaseCX = 0;
-        this.leftBaseCY = 0;
         this.dx = 0;
         this.dy = 0;
 
-        // Right joystick (aim)
-        this.rightZone = document.getElementById('joystick-zone-right');
-        this.rightBase = document.getElementById('joystick-base-right');
+        // Right joystick state
         this.rightActive = false;
         this.rightTouchId = null;
-        this.rightBaseCX = 0;
-        this.rightBaseCY = 0;
         this.aimX = 0;
         this.aimY = 0;
         this.aiming = false;
 
         this.maxDist = 50;
         this.active = false;
+        this.hudVisible = false;
 
         if (this.isMobile) {
-            this.leftZone.classList.add('active');
-            this.rightZone.classList.add('active');
             this.bindTouch();
         }
     }
 
-    _cacheBaseCenter(base) {
-        const r = base.getBoundingClientRect();
-        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    // Fixed screen positions for joystick centers
+    _leftCenter() {
+        return { x: 90, y: this.canvas.height - 90 };
+    }
+    _rightCenter() {
+        return { x: this.canvas.width - 90, y: this.canvas.height - 90 };
     }
 
     _clampDir(rawDx, rawDy) {
@@ -385,56 +383,57 @@ class JoystickController {
         return { dx: (rawDx / d) * scale, dy: (rawDy / d) * scale };
     }
 
+    _isLeftSide(x) {
+        return x < this.canvas.width / 2;
+    }
+
     bindTouch() {
-        // LEFT ZONE — touchstart
-        this.leftZone.addEventListener('touchstart', (e) => {
+        this.canvas.addEventListener('touchstart', (e) => {
+            if (!this.hudVisible) return;
             e.preventDefault();
-            if (this.leftTouchId !== null) return;
-            const t = e.changedTouches[0];
-            this.leftTouchId = t.identifier;
-            const c = this._cacheBaseCenter(this.leftBase);
-            this.leftBaseCX = c.x;
-            this.leftBaseCY = c.y;
-            this.leftActive = true;
-            this.active = true;
-            const dir = this._clampDir(t.clientX - this.leftBaseCX, t.clientY - this.leftBaseCY);
-            this.dx = dir.dx;
-            this.dy = dir.dy;
-        }, { passive: false });
-
-        // RIGHT ZONE — touchstart
-        this.rightZone.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (this.rightTouchId !== null) return;
-            const t = e.changedTouches[0];
-            this.rightTouchId = t.identifier;
-            const c = this._cacheBaseCenter(this.rightBase);
-            this.rightBaseCX = c.x;
-            this.rightBaseCY = c.y;
-            this.rightActive = true;
-            this.aiming = true;
-            const dir = this._clampDir(t.clientX - this.rightBaseCX, t.clientY - this.rightBaseCY);
-            this.aimX = dir.dx;
-            this.aimY = dir.dy;
-        }, { passive: false });
-
-        // Global touchmove — update direction only, no visual change
-        window.addEventListener('touchmove', (e) => {
             for (const t of e.changedTouches) {
-                if (t.identifier === this.leftTouchId && this.leftActive) {
-                    const dir = this._clampDir(t.clientX - this.leftBaseCX, t.clientY - this.leftBaseCY);
+                if (this._isLeftSide(t.clientX)) {
+                    // Left joystick
+                    if (this.leftTouchId !== null) continue;
+                    this.leftTouchId = t.identifier;
+                    this.leftActive = true;
+                    this.active = true;
+                    const c = this._leftCenter();
+                    const dir = this._clampDir(t.clientX - c.x, t.clientY - c.y);
                     this.dx = dir.dx;
                     this.dy = dir.dy;
-                }
-                if (t.identifier === this.rightTouchId && this.rightActive) {
-                    const dir = this._clampDir(t.clientX - this.rightBaseCX, t.clientY - this.rightBaseCY);
+                } else {
+                    // Right joystick
+                    if (this.rightTouchId !== null) continue;
+                    this.rightTouchId = t.identifier;
+                    this.rightActive = true;
+                    this.aiming = true;
+                    const c = this._rightCenter();
+                    const dir = this._clampDir(t.clientX - c.x, t.clientY - c.y);
                     this.aimX = dir.dx;
                     this.aimY = dir.dy;
                 }
             }
         }, { passive: false });
 
-        // Global touchend / touchcancel
+        window.addEventListener('touchmove', (e) => {
+            if (!this.hudVisible) return;
+            for (const t of e.changedTouches) {
+                if (t.identifier === this.leftTouchId && this.leftActive) {
+                    const c = this._leftCenter();
+                    const dir = this._clampDir(t.clientX - c.x, t.clientY - c.y);
+                    this.dx = dir.dx;
+                    this.dy = dir.dy;
+                }
+                if (t.identifier === this.rightTouchId && this.rightActive) {
+                    const c = this._rightCenter();
+                    const dir = this._clampDir(t.clientX - c.x, t.clientY - c.y);
+                    this.aimX = dir.dx;
+                    this.aimY = dir.dy;
+                }
+            }
+        }, { passive: false });
+
         const endTouch = (e) => {
             for (const t of e.changedTouches) {
                 if (t.identifier === this.leftTouchId) {
@@ -455,6 +454,60 @@ class JoystickController {
         };
         window.addEventListener('touchend', endTouch);
         window.addEventListener('touchcancel', endTouch);
+    }
+
+    // Draw both joysticks on the game canvas
+    drawJoysticks(ctx) {
+        if (!this.isMobile || !this.hudVisible) return;
+
+        const lc = this._leftCenter();
+        const rc = this._rightCenter();
+
+        // --- Left joystick (move) ---
+        // Base circle
+        ctx.beginPath();
+        ctx.arc(lc.x, lc.y, this.baseRadius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.04)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Stick circle (always centered)
+        ctx.beginPath();
+        ctx.arc(lc.x, lc.y, this.stickRadius, 0, Math.PI * 2);
+        ctx.fillStyle = this.leftActive ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.18)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Label
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.font = '700 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('MOVE', lc.x, lc.y + this.baseRadius + 16);
+
+        // --- Right joystick (aim) ---
+        // Base circle
+        ctx.beginPath();
+        ctx.arc(rc.x, rc.y, this.baseRadius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,60,60,0.04)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,68,68,0.25)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Stick circle (always centered)
+        ctx.beginPath();
+        ctx.arc(rc.x, rc.y, this.stickRadius, 0, Math.PI * 2);
+        ctx.fillStyle = this.rightActive ? 'rgba(255,100,100,0.4)' : 'rgba(255,100,100,0.18)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,100,100,0.4)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Label
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.font = '700 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('AIM', rc.x, rc.y + this.baseRadius + 16);
     }
 
     getInput() {
@@ -479,7 +532,7 @@ class Game {
         this.miniCanvas = document.getElementById('minimap');
         this.miniCtx = this.miniCanvas.getContext('2d');
         this.audio = new AudioManager();
-        this.joystick = new JoystickController();
+        this.joystick = new JoystickController(this.canvas);
 
         this.keys = {};
         this.lastFacing = { x: 1, y: 0 };
@@ -582,10 +635,8 @@ class Game {
         // Pause button & audio controls
         document.getElementById('pause-btn').classList.toggle('active', visible);
         document.getElementById('audio-controls').classList.toggle('active', visible);
-        if (this.joystick.isMobile) {
-            document.getElementById('joystick-zone-left').classList.toggle('active', visible);
-            document.getElementById('joystick-zone-right').classList.toggle('active', visible);
-        }
+        // Tell joystick controller whether HUD is visible (for canvas drawing)
+        this.joystick.hudVisible = visible;
     }
 
     startGame() {
@@ -955,6 +1006,8 @@ class Game {
         for (const p of this.particles) p.draw(ctx, cam);
         for (const d of this.damageNumbers) d.draw(ctx, cam);
         this.drawMinimap();
+        // Draw canvas-based joysticks on top of everything
+        this.joystick.drawJoysticks(ctx);
     }
 
     drawGrid(ctx, cam, W, H) {
