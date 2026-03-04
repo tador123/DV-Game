@@ -6,9 +6,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Dark Survivors">
     <meta name="theme-color" content="#ff2244">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
     <title>🧛 Dark Survivors</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -122,6 +125,12 @@
         .install-btn:active { transform: scale(0.97); }
         .install-banner { display: none; text-align: center; margin-top: 12px; padding: 10px; background: rgba(0,200,80,0.1); border: 1px solid rgba(0,200,80,0.3); border-radius: 10px; color: #aaa; font-size: 12px; }
         .install-banner strong { color: #00e676; }
+
+        /* iOS install toast overlay */
+        .ios-toast { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 1px solid rgba(0,200,80,0.4); border-radius: 14px; padding: 16px 20px; color: #ccc; font-size: 14px; z-index: 9999; max-width: 340px; width: 90%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.6); }
+        .ios-toast .ios-arrow { position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 10px solid rgba(0,200,80,0.4); }
+        .ios-toast strong { color: #00e676; }
+        .ios-toast .ios-close { position: absolute; top: 6px; right: 10px; background: none; border: none; color: #666; font-size: 18px; cursor: pointer; }
 
         .clan-badge {
             display: inline-flex;
@@ -585,7 +594,7 @@
         <div style="margin-top: 16px; color: #444; font-size: 12px; text-align:center;">WASD / Arrows to move • Touch joystick on mobile</div>
         <div id="login-install-banner" class="install-banner">
             <strong>📲 Play fullscreen without the address bar!</strong><br>
-            Tap <strong>Install</strong> in the lobby after logging in, or use your browser's "Add to Home Screen" option.
+            <span id="login-install-text">Tap <strong>Install</strong> in the lobby after logging in.</span>
         </div>
     </div>
 
@@ -644,6 +653,14 @@
     <!-- ========== TOAST ========== -->
     <div id="toast"></div>
 
+    <!-- iOS install toast (shown when iOS user taps install) -->
+    <div id="ios-toast" class="ios-toast">
+        <button class="ios-close" id="ios-toast-close">&times;</button>
+        <div style="font-size:15px;margin-bottom:8px;"><strong>Install Dark Survivors</strong></div>
+        <div>Tap <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2300e676' stroke-width='2'%3E%3Cpath d='M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8'/%3E%3Cpolyline points='16 6 12 2 8 6'/%3E%3Cline x1='12' y1='2' x2='12' y2='15'/%3E%3C/svg%3E" style="vertical-align:middle;margin:0 2px;"> <strong>Share</strong> at the bottom of Safari,<br>then scroll down and tap <strong>"Add to Home Screen"</strong></div>
+        <div class="ios-arrow"></div>
+    </div>
+
     <script src="social.js"></script>
     <script src="game.js"></script>
 
@@ -657,26 +674,54 @@
             }).catch(err => console.warn('SW registration failed:', err));
         }
 
-        // Capture the beforeinstallprompt event
+        // Detect iOS
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isInStandalone = window.navigator.standalone === true ||
+            window.matchMedia('(display-mode: fullscreen)').matches ||
+            window.matchMedia('(display-mode: standalone)').matches;
+
+        // Capture the beforeinstallprompt event (Android/Chrome)
         let deferredPrompt = null;
         const installBtn = document.getElementById('install-btn');
         const loginBanner = document.getElementById('login-install-banner');
+        const loginInstallText = document.getElementById('login-install-text');
+        const iosToast = document.getElementById('ios-toast');
+        const iosToastClose = document.getElementById('ios-toast-close');
 
+        // If already running as installed PWA, hide all install UI
+        if (isInStandalone) {
+            if (loginBanner) loginBanner.style.display = 'none';
+        } else if (isIOS) {
+            // iOS: show install button + iOS-specific instructions
+            if (installBtn) {
+                installBtn.style.display = 'block';
+                installBtn.textContent = '\ud83d\udcf2 ADD TO HOME SCREEN (Fullscreen)';
+            }
+            if (loginBanner) loginBanner.style.display = 'block';
+            if (loginInstallText) {
+                loginInstallText.innerHTML = 'In Safari, tap <strong>Share</strong> \u2192 <strong>Add to Home Screen</strong> for fullscreen.';
+            }
+        }
+
+        // Android/Chrome: beforeinstallprompt
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            // Show install button in lobby
             if (installBtn) installBtn.style.display = 'block';
-            // Show banner on login screen
             if (loginBanner) loginBanner.style.display = 'block';
         });
 
         // Handle install button click
         if (installBtn) {
             installBtn.addEventListener('click', async () => {
+                if (isIOS) {
+                    // Show iOS-specific toast with instructions
+                    if (iosToast) iosToast.style.display = 'block';
+                    return;
+                }
                 if (!deferredPrompt) {
-                    // Fallback: show instructions
-                    alert('To install: tap your browser menu (⋮) and select "Add to Home Screen" or "Install App".');
+                    alert('To install: tap your browser menu and select "Add to Home Screen" or "Install App".');
                     return;
                 }
                 deferredPrompt.prompt();
@@ -689,19 +734,20 @@
             });
         }
 
-        // Hide install UI if already installed (standalone mode)
+        // iOS toast close button
+        if (iosToastClose) {
+            iosToastClose.addEventListener('click', () => {
+                if (iosToast) iosToast.style.display = 'none';
+            });
+        }
+
+        // Hide install UI if app gets installed
         window.addEventListener('appinstalled', () => {
             if (installBtn) installBtn.style.display = 'none';
             if (loginBanner) loginBanner.style.display = 'none';
+            if (iosToast) iosToast.style.display = 'none';
             deferredPrompt = null;
         });
-
-        // If already running as PWA, hide install prompts
-        if (window.matchMedia('(display-mode: fullscreen)').matches ||
-            window.matchMedia('(display-mode: standalone)').matches ||
-            window.navigator.standalone === true) {
-            if (loginBanner) loginBanner.style.display = 'none';
-        }
     })();
     </script>
 </body>
