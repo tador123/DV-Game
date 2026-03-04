@@ -25,7 +25,8 @@ const CONFIG = {
 };
 
 // ============================================================
-// AUDIO SYSTEM (Web Audio API — no external files)
+// ============================================================
+// AUDIO SYSTEM (MP3 background music + Web Audio API SFX)
 // ============================================================
 class AudioManager {
     constructor() {
@@ -35,154 +36,41 @@ class AudioManager {
         this.musicVolume = 0.45;
         this.sfxOn = true;
         this.musicOn = true;
-        this.bgNodes = null;
-        this.musicGain = null;
+        this.bgMusic = null;
     }
 
     init() {
         try {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            // Resume on user gesture (some browsers suspend AudioContext)
             if (this.ctx.state === 'suspended') this.ctx.resume();
         } catch (e) {
             this.enabled = false;
         }
     }
 
-    // ---- Background Music: dark ambient procedural loop ----
+    // ---- Background Music: MP3 file loop ----
     startMusic() {
-        if (!this.enabled || !this.ctx || this.bgNodes) return;
+        if (this.bgMusic) return;
         try {
-            this.musicGain = this.ctx.createGain();
-            this.musicGain.gain.setValueAtTime(this.musicOn ? this.musicVolume : 0, this.ctx.currentTime);
-            this.musicGain.connect(this.ctx.destination);
-
-            this.bgNodes = [];
-
-            // Layer 1: Deep bass drone (dark foundation)
-            const bass = this.ctx.createOscillator();
-            const bassGain = this.ctx.createGain();
-            bass.type = 'sine';
-            bass.frequency.setValueAtTime(55, this.ctx.currentTime); // A1
-            bassGain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-            bass.connect(bassGain);
-            bassGain.connect(this.musicGain);
-            bass.start();
-            this.bgNodes.push(bass);
-
-            // Layer 2: Sub-bass pulse (slow LFO on volume for menacing throb)
-            const sub = this.ctx.createOscillator();
-            const subGain = this.ctx.createGain();
-            const subLfo = this.ctx.createOscillator();
-            const subLfoGain = this.ctx.createGain();
-            sub.type = 'sine';
-            sub.frequency.setValueAtTime(36.7, this.ctx.currentTime); // D1
-            subGain.gain.setValueAtTime(0.18, this.ctx.currentTime);
-            subLfo.type = 'sine';
-            subLfo.frequency.setValueAtTime(0.15, this.ctx.currentTime); // very slow throb
-            subLfoGain.gain.setValueAtTime(0.12, this.ctx.currentTime);
-            subLfo.connect(subLfoGain);
-            subLfoGain.connect(subGain.gain);
-            sub.connect(subGain);
-            subGain.connect(this.musicGain);
-            sub.start(); subLfo.start();
-            this.bgNodes.push(sub, subLfo);
-
-            // Layer 3: Eerie pad (detuned triangle waves for atmosphere)
-            const pad1 = this.ctx.createOscillator();
-            const pad2 = this.ctx.createOscillator();
-            const padFilter = this.ctx.createBiquadFilter();
-            const padGain = this.ctx.createGain();
-            pad1.type = 'triangle';
-            pad2.type = 'triangle';
-            pad1.frequency.setValueAtTime(110, this.ctx.currentTime); // A2
-            pad2.frequency.setValueAtTime(112.5, this.ctx.currentTime); // Slightly detuned = eerie beating
-            padFilter.type = 'lowpass';
-            padFilter.frequency.setValueAtTime(400, this.ctx.currentTime);
-            padFilter.Q.setValueAtTime(2, this.ctx.currentTime);
-            padGain.gain.setValueAtTime(0.1, this.ctx.currentTime);
-            pad1.connect(padFilter); pad2.connect(padFilter);
-            padFilter.connect(padGain);
-            padGain.connect(this.musicGain);
-            pad1.start(); pad2.start();
-            this.bgNodes.push(pad1, pad2);
-
-            // Layer 4: High eerie whisper (filtered noise-like texture via detuned oscillators)
-            const whisper1 = this.ctx.createOscillator();
-            const whisper2 = this.ctx.createOscillator();
-            const whisperFilter = this.ctx.createBiquadFilter();
-            const whisperGain = this.ctx.createGain();
-            const whisperLfo = this.ctx.createOscillator();
-            const whisperLfoGain = this.ctx.createGain();
-            whisper1.type = 'sine';
-            whisper2.type = 'sine';
-            whisper1.frequency.setValueAtTime(660, this.ctx.currentTime); // E5
-            whisper2.frequency.setValueAtTime(663, this.ctx.currentTime);
-            whisperFilter.type = 'bandpass';
-            whisperFilter.frequency.setValueAtTime(700, this.ctx.currentTime);
-            whisperFilter.Q.setValueAtTime(8, this.ctx.currentTime);
-            whisperGain.gain.setValueAtTime(0.04, this.ctx.currentTime);
-            whisperLfo.type = 'sine';
-            whisperLfo.frequency.setValueAtTime(0.08, this.ctx.currentTime);
-            whisperLfoGain.gain.setValueAtTime(0.03, this.ctx.currentTime);
-            whisperLfo.connect(whisperLfoGain);
-            whisperLfoGain.connect(whisperGain.gain);
-            whisper1.connect(whisperFilter); whisper2.connect(whisperFilter);
-            whisperFilter.connect(whisperGain);
-            whisperGain.connect(this.musicGain);
-            whisper1.start(); whisper2.start(); whisperLfo.start();
-            this.bgNodes.push(whisper1, whisper2, whisperLfo);
-
-            // Layer 5: Rhythmic pulse (dark heartbeat-like kick)
-            this._startHeartbeat();
+            this.bgMusic = new Audio('bg-music.mp3');
+            this.bgMusic.loop = true;
+            this.bgMusic.volume = this.musicOn ? this.musicVolume : 0;
+            this.bgMusic.play().catch(() => {});
         } catch (e) {}
     }
 
-    _startHeartbeat() {
-        if (!this.enabled || !this.ctx || !this.musicGain) return;
-        const scheduleKick = () => {
-            if (!this.bgNodes) return;
-            try {
-                const now = this.ctx.currentTime;
-                // Double kick like a heartbeat
-                [0, 0.18].forEach(offset => {
-                    const osc = this.ctx.createOscillator();
-                    const g = this.ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(80, now + offset);
-                    osc.frequency.exponentialRampToValueAtTime(30, now + offset + 0.15);
-                    g.gain.setValueAtTime(0.2, now + offset);
-                    g.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.2);
-                    osc.connect(g);
-                    g.connect(this.musicGain);
-                    osc.start(now + offset);
-                    osc.stop(now + offset + 0.25);
-                });
-            } catch (e) {}
-            this._heartbeatTimer = setTimeout(scheduleKick, 2400); // heartbeat every 2.4s
-        };
-        scheduleKick();
-    }
-
     stopMusic() {
-        if (this.bgNodes) {
-            this.bgNodes.forEach(n => { try { n.stop(); } catch (e) {} });
-            this.bgNodes = null;
+        if (this.bgMusic) {
+            this.bgMusic.pause();
+            this.bgMusic.currentTime = 0;
+            this.bgMusic = null;
         }
-        if (this._heartbeatTimer) {
-            clearTimeout(this._heartbeatTimer);
-            this._heartbeatTimer = null;
-        }
-        this.musicGain = null;
     }
 
     toggleMusic() {
         this.musicOn = !this.musicOn;
-        if (this.musicGain) {
-            this.musicGain.gain.linearRampToValueAtTime(
-                this.musicOn ? this.musicVolume : 0,
-                this.ctx.currentTime + 0.3
-            );
+        if (this.bgMusic) {
+            this.bgMusic.volume = this.musicOn ? this.musicVolume : 0;
         }
         this.updateSoundButtons();
     }
@@ -195,13 +83,13 @@ class AudioManager {
     updateSoundButtons() {
         const sfxBtn = document.getElementById('sfx-toggle');
         const musBtn = document.getElementById('music-toggle');
-        if (sfxBtn) sfxBtn.textContent = this.sfxOn ? '🔊' : '🔇';
-        if (musBtn) musBtn.textContent = this.musicOn ? '🎵' : '🎵̸';
+        if (sfxBtn) sfxBtn.textContent = this.sfxOn ? '\u{1F50A}' : '\u{1F507}';
+        if (musBtn) musBtn.textContent = this.musicOn ? '\u{1F3B5}' : '\u{1F3B5}\u{0338}';
         // Pause screen buttons
         const pSfx = document.getElementById('pause-sfx-btn');
         const pMus = document.getElementById('pause-music-btn');
-        if (pSfx) pSfx.textContent = this.sfxOn ? '🔊 SFX: ON' : '🔇 SFX: OFF';
-        if (pMus) pMus.textContent = this.musicOn ? '🎵 Music: ON' : '🎵 Music: OFF';
+        if (pSfx) pSfx.textContent = this.sfxOn ? '\u{1F50A} SFX: ON' : '\u{1F507} SFX: OFF';
+        if (pMus) pMus.textContent = this.musicOn ? '\u{1F3B5} Music: ON' : '\u{1F3B5} Music: OFF';
     }
 
     play(type) {
@@ -590,6 +478,7 @@ class Game {
         if (this.state !== 'playing') return;
         this.paused = true;
         this.state = 'paused';
+        if (this.audio.bgMusic) this.audio.bgMusic.pause();
         document.getElementById('pause-screen').classList.add('active');
     }
 
@@ -597,6 +486,7 @@ class Game {
         if (!this.paused) return;
         this.paused = false;
         this.state = 'playing';
+        if (this.audio.bgMusic && this.audio.musicOn) this.audio.bgMusic.play().catch(() => {});
         document.getElementById('pause-screen').classList.remove('active');
         this.lastTime = performance.now();
         requestAnimationFrame((t) => this.gameLoop(t));
