@@ -407,8 +407,12 @@
             z-index: 15;
             pointer-events: auto;
             display: none;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
-        .joystick-zone.active { display: block; }
+        .joystick-zone.active { display: block !important; }
         #joystick-zone-left { left: 0; }
         #joystick-zone-right { right: 0; }
         .joystick-base {
@@ -423,6 +427,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            touch-action: none;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            will-change: transform;
         }
         #joystick-base-left { left: 30px; bottom: 30px; }
         #joystick-base-right { right: 30px; bottom: 30px; }
@@ -436,9 +444,13 @@
             border: 2px solid rgba(255,255,255,0.35);
             pointer-events: none;
             box-shadow: 0 2px 10px rgba(0,0,0,0.4);
-            /* Centered on base: (120-52)/2 = 34 */
+            /* Centered on base: (120-52)/2 = 34 — NEVER changes */
             left: 34px;
             top: 34px;
+            touch-action: none;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            will-change: transform;
         }
         .joystick-stick.aim {
             background: radial-gradient(circle at 35% 35%, rgba(255,100,100,0.45), rgba(255,60,60,0.15));
@@ -599,10 +611,7 @@
             #clan-panel .btn { font-size: 9px; padding: 5px 10px; }
         }
 
-        @media (hover: none) and (pointer: coarse) {
-            /* Touch device detected */
-            .joystick-zone { display: block; }
-        }
+        /* Joystick visibility controlled only by .active class from JS */
 
         /* Tab navigation for panels */
         .tab-bar {
