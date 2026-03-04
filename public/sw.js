@@ -1,5 +1,5 @@
 // Dark Survivors — Service Worker (offline + PWA install support)
-const CACHE_NAME = 'dark-survivors-v8';
+const CACHE_NAME = 'dark-survivors-v9';
 const ASSETS = [
     '/',
     '/index.html',

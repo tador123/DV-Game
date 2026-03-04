@@ -249,6 +249,59 @@ class DamageNumber {
 // ============================================================
 // GEM (XP Pickup)
 // ============================================================
+// ============================================================
+// HEALTH SUPPLY PICKUP
+// ============================================================
+class HealthSupply {
+    constructor(x, y, healAmount) {
+        this.x = x; this.y = y;
+        this.healAmount = healAmount;
+        this.size = 10;
+        this.bobPhase = Math.random() * Math.PI * 2;
+        this.attracted = false;
+        this.lifetime = 30; // disappears after 30 seconds
+        this.pulsePhase = 0;
+    }
+    update(dt, player) {
+        this.bobPhase += dt * 2.5;
+        this.pulsePhase += dt * 4;
+        this.lifetime -= dt;
+        if (this.lifetime <= 0) return 'expired';
+        const d = dist(this, player);
+        if (d < player.pickupRadius || this.attracted) {
+            this.attracted = true;
+            const a = angle(this, player);
+            this.x += Math.cos(a) * 400 * dt;
+            this.y += Math.sin(a) * 400 * dt;
+            if (d < 18) return 'picked';
+        }
+        return 'alive';
+    }
+    draw(ctx, cam) {
+        const sx = this.x - cam.x, sy = this.y - cam.y + Math.sin(this.bobPhase) * 4;
+        const pulse = 1 + Math.sin(this.pulsePhase) * 0.15;
+        const s = this.size * pulse;
+        // Glow
+        ctx.globalAlpha = 0.25;
+        ctx.fillStyle = '#44ff66';
+        ctx.beginPath(); ctx.arc(sx, sy, s + 8, 0, Math.PI * 2); ctx.fill();
+        // Background circle
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(sx, sy, s, 0, Math.PI * 2); ctx.fill();
+        // Red cross
+        ctx.fillStyle = '#ff2244';
+        const cw = s * 0.35, ch = s * 0.8;
+        ctx.fillRect(sx - cw / 2, sy - ch / 2, cw, ch);
+        ctx.fillRect(sx - ch / 2, sy - cw / 2, ch, cw);
+        // Blinking when about to expire
+        if (this.lifetime < 5) {
+            ctx.globalAlpha = Math.sin(this.lifetime * 8) > 0 ? 0.9 : 0.2;
+        }
+        ctx.globalAlpha = 1;
+    }
+}
+
 class Gem {
     constructor(x, y, value) { this.x = x; this.y = y; this.value = value; this.size = Math.min(4 + value, 10); this.bobPhase = Math.random() * Math.PI * 2; this.attracted = false; this.color = value >= 10 ? '#44aaff' : value >= 5 ? '#44ff88' : '#44ff44'; }
     update(dt, player) {
@@ -661,6 +714,7 @@ class Game {
         this.camera = { x: this.player.x - this.canvas.width / 2, y: this.player.y - this.canvas.height / 2 };
         this.enemies = []; this.projectiles = []; this.gems = []; this.particles = [];
         this.damageNumbers = []; this.zones = []; this.lightnings = [];
+        this.healthSupplies = []; this.healthSpawnTimer = rand(10, 18);
         this.gameTime = 0; this.kills = 0; this.enemySpawnTimer = 0;
         this.bossTimer = CONFIG.BOSS_INTERVAL; this.difficultyScale = 1;
 
@@ -695,6 +749,7 @@ class Game {
         this.updateZones(dt);
         this.updateEnemies(dt);
         this.updateGems(dt);
+        this.updateHealthSupplies(dt);
         this.particles = this.particles.filter(p => p.update(dt));
         this.damageNumbers = this.damageNumbers.filter(d => d.update(dt));
         this.lightnings = this.lightnings.filter(l => { l.life -= dt; return l.life > 0; });
@@ -923,10 +978,6 @@ class Game {
         const pc = e.isBoss ? 30 : 8;
         for (let i = 0; i < pc; i++) this.addParticle(e.x, e.y, e.color, rand(40, 150), rand(0.2, 0.5), rand(2, e.isBoss ? 8 : 5));
         this.screenShake.intensity = Math.min(15, this.screenShake.intensity + (e.isBoss ? 12 : 2));
-
-        // Heal player on kill (2 HP normal, 15 HP boss, capped at max)
-        const healAmount = e.isBoss ? 15 : 2;
-        this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
     }
 
     // ========================================================
@@ -939,6 +990,42 @@ class Game {
                 for (let i = 0; i < 3; i++) this.addParticle(g.x, g.y, g.color, 50, 0.3, 2);
                 this.checkLevelUp(); return false;
             }
+            return true;
+        });
+    }
+
+    // ========================================================
+    // HEALTH SUPPLIES
+    // ========================================================
+    updateHealthSupplies(dt) {
+        // Spawn timer: new health supply every 15-25 seconds
+        this.healthSpawnTimer -= dt;
+        if (this.healthSpawnTimer <= 0 && this.healthSupplies.length < 5) {
+            this.healthSpawnTimer = rand(15, 25);
+            // Spawn at random position within the world, near-ish to the player
+            const a = Math.random() * Math.PI * 2;
+            const d = rand(200, 600);
+            let sx = this.player.x + Math.cos(a) * d;
+            let sy = this.player.y + Math.sin(a) * d;
+            // Clamp to world bounds
+            sx = Math.max(50, Math.min(CONFIG.WORLD_SIZE - 50, sx));
+            sy = Math.max(50, Math.min(CONFIG.WORLD_SIZE - 50, sy));
+            // Heal amount: 10-25 HP
+            const heal = Math.floor(rand(10, 25));
+            this.healthSupplies.push(new HealthSupply(sx, sy, heal));
+        }
+
+        this.healthSupplies = this.healthSupplies.filter(h => {
+            const result = h.update(dt, this.player);
+            if (result === 'picked') {
+                const healed = Math.min(h.healAmount, this.player.maxHp - this.player.hp);
+                this.player.hp = Math.min(this.player.maxHp, this.player.hp + h.healAmount);
+                this.audio.play('pickup');
+                this.addDamageNumber(h.x, h.y - 15, '+' + healed, '#44ff66');
+                for (let i = 0; i < 6; i++) this.addParticle(h.x, h.y, '#44ff66', 60, 0.4, 3);
+                return false;
+            }
+            if (result === 'expired') return false;
             return true;
         });
     }
@@ -1001,6 +1088,7 @@ class Game {
         this.drawWorldBorder(ctx, cam);
         for (const z of this.zones) z.draw(ctx, cam);
         for (const g of this.gems) { const sx = g.x - cam.x, sy = g.y - cam.y; if (sx > -50 && sx < W + 50 && sy > -50 && sy < H + 50) g.draw(ctx, cam); }
+        for (const h of this.healthSupplies) { const sx = h.x - cam.x, sy = h.y - cam.y; if (sx > -50 && sx < W + 50 && sy > -50 && sy < H + 50) h.draw(ctx, cam); }
         for (const e of this.enemies) { const sx = e.x - cam.x, sy = e.y - cam.y; if (sx > -100 && sx < W + 100 && sy > -100 && sy < H + 100) e.draw(ctx, cam); }
         this.drawPlayer(ctx, cam);
         this.drawOrbitWeapons(ctx, cam);
