@@ -335,7 +335,8 @@ class ZoneEffect {
 // ============================================================
 // MOBILE DUAL JOYSTICK CONTROLLER
 // Left joystick = movement, Right joystick = aim direction
-// Both are fixed in position — sticks move relative to base center
+// Fixed position — sticks move relative to base center
+// Touch origin tracked so movement is relative, not absolute
 // ============================================================
 class JoystickController {
     constructor() {
@@ -347,6 +348,8 @@ class JoystickController {
         this.leftStick = document.getElementById('joystick-stick-left');
         this.leftActive = false;
         this.leftTouchId = null;
+        this.leftOriginX = 0;
+        this.leftOriginY = 0;
         this.dx = 0;
         this.dy = 0;
 
@@ -356,6 +359,8 @@ class JoystickController {
         this.rightStick = document.getElementById('joystick-stick-right');
         this.rightActive = false;
         this.rightTouchId = null;
+        this.rightOriginX = 0;
+        this.rightOriginY = 0;
         this.aimX = 0;
         this.aimY = 0;
         this.aiming = false;
@@ -370,13 +375,8 @@ class JoystickController {
         }
     }
 
-    _getBaseCenter(base) {
-        const r = base.getBoundingClientRect();
-        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-    }
-
     _moveStick(stick, dx, dy) {
-        // dx, dy are clamped pixel offsets from center
+        // dx, dy are clamped pixel offsets from center of base
         stick.style.left = `calc(50% + ${dx}px)`;
         stick.style.top = `calc(50% + ${dy}px)`;
         stick.style.transform = 'translate(-50%, -50%)';
@@ -404,6 +404,9 @@ class JoystickController {
             if (this.leftTouchId !== null) return;
             const t = e.changedTouches[0];
             this.leftTouchId = t.identifier;
+            // Record where the finger first touched as the origin
+            this.leftOriginX = t.clientX;
+            this.leftOriginY = t.clientY;
             this.leftActive = true;
             this.active = true;
         }, { passive: false });
@@ -414,6 +417,9 @@ class JoystickController {
             if (this.rightTouchId !== null) return;
             const t = e.changedTouches[0];
             this.rightTouchId = t.identifier;
+            // Record where the finger first touched as the origin
+            this.rightOriginX = t.clientX;
+            this.rightOriginY = t.clientY;
             this.rightActive = true;
             this.aiming = true;
         }, { passive: false });
@@ -421,18 +427,22 @@ class JoystickController {
         // Global touchmove
         window.addEventListener('touchmove', (e) => {
             for (const t of e.changedTouches) {
-                // Left joystick
+                // Left joystick — delta from initial touch point
                 if (t.identifier === this.leftTouchId && this.leftActive) {
-                    const center = this._getBaseCenter(this.leftBase);
-                    const raw = this._clampDist(t.clientX - center.x, t.clientY - center.y);
+                    const raw = this._clampDist(
+                        t.clientX - this.leftOriginX,
+                        t.clientY - this.leftOriginY
+                    );
                     this.dx = raw.dx / this.maxDist;
                     this.dy = raw.dy / this.maxDist;
                     this._moveStick(this.leftStick, raw.dx, raw.dy);
                 }
-                // Right joystick
+                // Right joystick — delta from initial touch point
                 if (t.identifier === this.rightTouchId && this.rightActive) {
-                    const center = this._getBaseCenter(this.rightBase);
-                    const raw = this._clampDist(t.clientX - center.x, t.clientY - center.y);
+                    const raw = this._clampDist(
+                        t.clientX - this.rightOriginX,
+                        t.clientY - this.rightOriginY
+                    );
                     this.aimX = raw.dx / this.maxDist;
                     this.aimY = raw.dy / this.maxDist;
                     this._moveStick(this.rightStick, raw.dx, raw.dy);

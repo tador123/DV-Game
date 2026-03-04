@@ -100,6 +100,9 @@ class Social {
         document.getElementById('restart-btn').addEventListener('click', () => this.startGame());
         document.getElementById('back-lobby-btn').addEventListener('click', () => this.backToLobby());
 
+        // Exit game button
+        document.getElementById('exit-btn').addEventListener('click', () => this.exitGame());
+
         // Leaderboard tabs
         document.querySelectorAll('#leaderboard-panel .tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -178,6 +181,16 @@ class Social {
         document.getElementById('login-name').value = this.user?.name || '';
     }
 
+    exitGame() {
+        // Try to close the window/tab (works in PWA and popups)
+        window.close();
+        // If window.close() didn't work (regular browser tab), navigate away
+        setTimeout(() => {
+            // Show a brief message since browser tabs can't self-close
+            this.toast('Use your browser\u2019s close button to exit');
+        }, 300);
+    }
+
     // ========================================================
     // SCORE SUBMISSION
     // ========================================================
@@ -219,7 +232,7 @@ class Social {
 
             <h3>📩 Join with Invite Code</h3>
             <div style="display:flex;gap:8px;margin-bottom:20px;">
-                <input type="text" id="join-code-input" class="input" placeholder="Enter 6-digit code..." maxlength="6" style="text-transform:uppercase;text-align:center;letter-spacing:3px;font-size:18px;">
+                <input type="text" id="join-code-input" class="input" placeholder="Enter 6-digit code..." maxlength="6" style="text-transform:uppercase;text-align:center;letter-spacing:3px;">
                 <button class="btn btn-green btn-sm" id="join-clan-btn">Join</button>
             </div>
 
@@ -254,14 +267,14 @@ class Social {
                 <h2>[${this.clan.tag}] ${this.clan.name}</h2>
                 <p>Leader: ${this.clan.leaderName} • ${this.clan.memberCount} members</p>
 
-                <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px;">
-                    <div class="stat-card" style="background:rgba(255,255,255,0.05);border-radius:8px;padding:10px;text-align:center;flex:1;">
-                        <div class="stat-val" style="color:#ffd700;font-size:18px;">${this.clan.totalScore.toLocaleString()}</div>
-                        <div class="stat-label" style="color:#888;font-size:11px;">Clan Score</div>
+                <div class="clan-stat-row">
+                    <div class="clan-stat-card">
+                        <div class="stat-val gold">${this.clan.totalScore.toLocaleString()}</div>
+                        <div class="stat-label">Clan Score</div>
                     </div>
-                    <div class="stat-card" style="background:rgba(255,255,255,0.05);border-radius:8px;padding:10px;text-align:center;flex:1;">
-                        <div class="stat-val" style="color:#ff6644;font-size:18px;">${this.clan.totalKills.toLocaleString()}</div>
-                        <div class="stat-label" style="color:#888;font-size:11px;">Total Kills</div>
+                    <div class="clan-stat-card">
+                        <div class="stat-val red">${this.clan.totalKills.toLocaleString()}</div>
+                        <div class="stat-label">Total Kills</div>
                     </div>
                 </div>
 

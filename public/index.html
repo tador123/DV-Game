@@ -97,6 +97,13 @@
             overflow-y: auto;
             animation: slideUp 0.3s ease;
         }
+        /* Clan detail stat cards */
+        .clan-stat-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
+        .clan-stat-card { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; text-align: center; flex: 1; }
+        .clan-stat-card .stat-val { font-size: 18px; font-weight: 800; }
+        .clan-stat-card .stat-label { color: #888; font-size: 11px; }
+        .clan-stat-card .stat-val.gold { color: #ffd700; }
+        .clan-stat-card .stat-val.red { color: #ff6644; }
         .panel::-webkit-scrollbar { width: 4px; }
         .panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 
@@ -434,8 +441,6 @@
             top: 50%;
             transform: translate(-50%, -50%);
         }
-        #joystick-stick-left { /* positioned inside left base */ }
-        #joystick-stick-right { /* positioned inside right base */ }
         .joystick-stick.aim {
             background: radial-gradient(circle at 35% 35%, rgba(255,100,100,0.45), rgba(255,60,60,0.15));
             border-color: rgba(255,100,100,0.4);
@@ -508,6 +513,12 @@
             .clan-badge { padding: 6px 10px; gap: 5px; margin-bottom: 8px; }
             .clan-badge .tag { font-size: 13px; }
             .clan-badge .cname { font-size: 12px; }
+            .clan-stat-row { gap: 5px; margin-bottom: 8px; }
+            .clan-stat-card { padding: 6px; }
+            .clan-stat-card .stat-val { font-size: 14px; }
+            .clan-stat-card .stat-label { font-size: 9px; }
+            #clan-panel .input { font-size: 13px !important; padding: 7px 10px !important; letter-spacing: 1px !important; }
+            #clan-panel .btn { font-size: 10px; padding: 6px 12px; }
         }
         @media (max-width: 600px) {
             .panel { padding: 16px; max-width: 95%; }
@@ -535,6 +546,12 @@
             .lb-score { font-size: 12px; }
             .tab-bar { margin-bottom: 10px; }
             .tab-btn { padding: 8px 6px; font-size: 11px; }
+            .clan-stat-row { gap: 6px; margin-bottom: 8px; }
+            .clan-stat-card { padding: 8px; }
+            .clan-stat-card .stat-val { font-size: 15px; }
+            .clan-stat-card .stat-label { font-size: 10px; }
+            #clan-panel .input { font-size: 14px !important; padding: 8px 12px !important; letter-spacing: 2px !important; }
+            #clan-panel .btn { font-size: 11px; padding: 8px 16px; }
         }
         /* Extra small height (landscape phones) */
         @media (max-height: 420px) {
@@ -575,6 +592,12 @@
             .tab-bar { margin-bottom: 6px; }
             .tab-btn { padding: 5px 4px; font-size: 9px; }
             .input { padding: 8px 10px; font-size: 13px; }
+            .clan-stat-row { gap: 4px; margin-bottom: 5px; }
+            .clan-stat-card { padding: 5px; }
+            .clan-stat-card .stat-val { font-size: 13px; }
+            .clan-stat-card .stat-label { font-size: 8px; }
+            #clan-panel .input { font-size: 12px !important; padding: 6px 8px !important; letter-spacing: 1px !important; }
+            #clan-panel .btn { font-size: 9px; padding: 5px 10px; }
         }
 
         @media (hover: none) and (pointer: coarse) {
@@ -720,6 +743,7 @@
             <button id="leaderboard-btn" class="btn btn-blue" style="width:100%">🏆 LEADERBOARD</button>
             <button id="install-btn" class="install-btn">📲 INSTALL APP (Fullscreen)</button>
             <button id="logout-btn" class="btn btn-outline btn-sm" style="margin-top:8px">Change Name</button>
+            <button id="exit-btn" class="btn btn-outline btn-sm" style="margin-top:2px;color:#ff4444;border-color:rgba(255,68,68,0.3);">✕ EXIT GAME</button>
         </div>
     </div>
 
