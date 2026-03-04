@@ -295,7 +295,7 @@ class JoystickController {
         this.originY = 0;
         this.dx = 0;
         this.dy = 0;
-        this.maxDist = 50;
+        this.maxDist = 55;
         this.isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
         if (this.isMobile) {
@@ -316,10 +316,10 @@ class JoystickController {
 
             this.base.style.display = 'block';
             this.stick.style.display = 'block';
-            this.base.style.left = (this.originX - 60) + 'px';
-            this.base.style.top = (this.originY - 60) + 'px';
-            this.stick.style.left = (this.originX - 25) + 'px';
-            this.stick.style.top = (this.originY - 25) + 'px';
+            this.base.style.left = (this.originX - 65) + 'px';
+            this.base.style.top = (this.originY - 65) + 'px';
+            this.stick.style.left = (this.originX - 28) + 'px';
+            this.stick.style.top = (this.originY - 28) + 'px';
         }, { passive: false });
 
         window.addEventListener('touchmove', (e) => {
@@ -335,8 +335,8 @@ class JoystickController {
                 }
                 this.dx = rawDx / this.maxDist;
                 this.dy = rawDy / this.maxDist;
-                this.stick.style.left = (this.originX + rawDx - 25) + 'px';
-                this.stick.style.top = (this.originY + rawDy - 25) + 'px';
+                this.stick.style.left = (this.originX + rawDx - 28) + 'px';
+                this.stick.style.top = (this.originY + rawDy - 28) + 'px';
             }
         }, { passive: false });
 
@@ -376,9 +376,11 @@ class Game {
         this.lastFacing = { x: 1, y: 0 };
         this.screenShake = { x: 0, y: 0, intensity: 0 };
         this.state = 'menu';
+        this.paused = false;
 
         this.resize();
         this.bindEvents();
+        this.bindPauseEvents();
     }
 
     resize() {
@@ -393,13 +395,76 @@ class Game {
         window.addEventListener('keydown', (e) => {
             this.keys[e.key.toLowerCase()] = true;
             if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault();
+            // Pause on Escape or P
+            if ((e.key === 'Escape' || e.key.toLowerCase() === 'p') && (this.state === 'playing' || this.paused)) {
+                e.preventDefault();
+                this.togglePause();
+            }
         });
         window.addEventListener('keyup', (e) => { this.keys[e.key.toLowerCase()] = false; });
+    }
+
+    bindPauseEvents() {
+        document.getElementById('pause-btn').addEventListener('click', () => this.togglePause());
+        document.getElementById('resume-btn').addEventListener('click', () => this.resumeGame());
+        document.getElementById('pause-lobby-btn').addEventListener('click', () => this.pauseBackToLobby());
+    }
+
+    togglePause() {
+        if (this.state === 'upgrading' || this.state === 'gameover' || this.state === 'menu') return;
+        if (this.paused) {
+            this.resumeGame();
+        } else {
+            this.pauseGame();
+        }
+    }
+
+    pauseGame() {
+        if (this.state !== 'playing') return;
+        this.paused = true;
+        this.state = 'paused';
+        document.getElementById('pause-screen').classList.add('active');
+    }
+
+    resumeGame() {
+        if (!this.paused) return;
+        this.paused = false;
+        this.state = 'playing';
+        document.getElementById('pause-screen').classList.remove('active');
+        this.lastTime = performance.now();
+        requestAnimationFrame((t) => this.gameLoop(t));
+    }
+
+    pauseBackToLobby() {
+        this.paused = false;
+        this.state = 'menu';
+        document.getElementById('pause-screen').classList.remove('active');
+        this.showHUD(false);
+        if (typeof social !== 'undefined') {
+            social.backToLobby();
+        }
+    }
+
+    requestFullscreen() {
+        if (!this.joystick.isMobile) return;
+        const el = document.documentElement;
+        const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+        if (rfs) {
+            rfs.call(el).catch(() => {});
+        }
+        // Try to lock orientation to landscape
+        try {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(() => {});
+            }
+        } catch (e) {}
     }
 
     showHUD(visible) {
         const ids = ['hud', 'hp-text', 'hp-bar-container', 'minimap'];
         ids.forEach(id => document.getElementById(id).classList.toggle('hidden', !visible));
+        // Pause button
+        document.getElementById('pause-btn').classList.toggle('active', visible);
         if (this.joystick.isMobile) {
             document.getElementById('joystick-zone').classList.toggle('active', visible);
         }
@@ -408,6 +473,10 @@ class Game {
     startGame() {
         this.audio.init();
         this.showHUD(true);
+        this.requestFullscreen();
+
+        this.paused = false;
+        document.getElementById('pause-screen').classList.remove('active');
 
         this.player = {
             x: CONFIG.WORLD_SIZE / 2, y: CONFIG.WORLD_SIZE / 2,
@@ -434,13 +503,13 @@ class Game {
     // GAME LOOP
     // ========================================================
     gameLoop(timestamp) {
-        if (this.state === 'menu') return;
+        if (this.state === 'menu' || this.state === 'paused') return;
         const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
         this.lastTime = timestamp;
         if (this.state === 'playing') this.update(dt);
         this.render();
         this.updateHUD();
-        if (this.state !== 'gameover' && this.state !== 'menu') requestAnimationFrame((t) => this.gameLoop(t));
+        if (this.state !== 'gameover' && this.state !== 'menu' && this.state !== 'paused') requestAnimationFrame((t) => this.gameLoop(t));
     }
 
     // ========================================================

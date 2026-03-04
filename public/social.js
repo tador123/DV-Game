@@ -160,6 +160,7 @@ class Social {
 
     backToLobby() {
         document.getElementById('gameover-screen').classList.remove('active');
+        document.getElementById('pause-screen')?.classList.remove('active');
         this.refreshUserData();
         this.showLobby();
     }

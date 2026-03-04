@@ -255,13 +255,109 @@
         #gameover-score span { color: #ffd700; }
         .gameover-btns { display: flex; flex-direction: column; gap: 10px; align-items: center; }
 
+        /* ========== PAUSE BUTTON (in-game) ========== */
+        #pause-btn {
+            position: fixed;
+            top: 50px;
+            right: 12px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,255,255,0.2);
+            color: #fff;
+            font-size: 20px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 20;
+            pointer-events: all;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            transition: transform 0.15s;
+        }
+        #pause-btn:hover { transform: scale(1.1); }
+        #pause-btn.active { display: flex; }
+
+        /* ========== PAUSE OVERLAY ========== */
+        #pause-screen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 280;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        #pause-screen.active { display: flex; }
+        #pause-title {
+            font-size: clamp(32px, 8vw, 48px);
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255,215,0,0.4);
+            margin-bottom: 8px;
+        }
+        #pause-subtitle {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        .pause-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            width: 90%;
+            max-width: 300px;
+        }
+        .pause-btns .btn { width: 100%; }
+
+        /* ========== LANDSCAPE LOCK OVERLAY ========== */
+        #rotate-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #0a0a12;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 9999;
+            text-align: center;
+            padding: 30px;
+        }
+        #rotate-overlay .rotate-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            animation: rotatePhone 2s ease-in-out infinite;
+        }
+        #rotate-overlay .rotate-text {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        #rotate-overlay .rotate-sub {
+            color: #888;
+            font-size: 13px;
+        }
+        @keyframes rotatePhone {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(90deg); }
+            50% { transform: rotate(90deg); }
+            75% { transform: rotate(0deg); }
+        }
+
         /* ========== MOBILE JOYSTICK ========== */
         #joystick-zone {
             position: fixed;
             bottom: 0;
             left: 0;
-            width: 50%;
-            height: 40%;
+            width: 55%;
+            height: 50%;
             z-index: 15;
             pointer-events: auto;
             display: none;
@@ -269,21 +365,21 @@
         #joystick-zone.active { display: block; }
         #joystick-base {
             position: absolute;
-            width: 120px;
-            height: 120px;
+            width: 130px;
+            height: 130px;
             border-radius: 50%;
             background: rgba(255,255,255,0.08);
-            border: 2px solid rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.2);
             display: none;
             pointer-events: none;
         }
         #joystick-stick {
             position: absolute;
-            width: 50px;
-            height: 50px;
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.2);
-            border: 2px solid rgba(255,255,255,0.3);
+            background: radial-gradient(circle, rgba(255,255,255,0.35), rgba(255,255,255,0.15));
+            border: 2px solid rgba(255,255,255,0.4);
             display: none;
             pointer-events: none;
         }
@@ -295,6 +391,15 @@
             #minimap { width: 70px; height: 70px; bottom: 150px; right: 8px; }
             .panel { padding: 20px; }
             .stats-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+            #pause-btn { top: 44px; right: 8px; width: 40px; height: 40px; font-size: 18px; }
+        }
+
+        /* Force landscape on mobile portrait */
+        @media (max-width: 900px) and (orientation: portrait) and (hover: none) and (pointer: coarse) {
+            #rotate-overlay { display: flex !important; }
+        }
+        @media (orientation: landscape), (hover: hover) {
+            #rotate-overlay { display: none !important; }
         }
 
         @media (hover: none) and (pointer: coarse) {
@@ -365,6 +470,26 @@
     <div id="hp-bar-container" class="hidden"><div id="hp-bar"></div></div>
     <canvas id="minimap" class="hidden"></canvas>
     <div id="kill-flash"></div>
+
+    <!-- ========== PAUSE BUTTON ========== -->
+    <div id="pause-btn">⏸</div>
+
+    <!-- ========== PAUSE SCREEN ========== -->
+    <div id="pause-screen">
+        <div id="pause-title">⏸ PAUSED</div>
+        <div id="pause-subtitle">Game is paused</div>
+        <div class="pause-btns">
+            <button id="resume-btn" class="btn btn-green">▶ RESUME</button>
+            <button id="pause-lobby-btn" class="btn btn-outline">← Back to Lobby</button>
+        </div>
+    </div>
+
+    <!-- ========== ROTATE DEVICE OVERLAY ========== -->
+    <div id="rotate-overlay">
+        <div class="rotate-icon">📱</div>
+        <div class="rotate-text">Rotate Your Device</div>
+        <div class="rotate-sub">This game is best played in landscape mode</div>
+    </div>
 
     <!-- ========== MOBILE JOYSTICK ========== -->
     <div id="joystick-zone">
