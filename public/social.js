@@ -182,13 +182,23 @@ class Social {
     }
 
     exitGame() {
-        // Try to close the window/tab (works in PWA and popups)
-        window.close();
-        // If window.close() didn't work (regular browser tab), navigate away
-        setTimeout(() => {
-            // Show a brief message since browser tabs can't self-close
-            this.toast('Use your browser\u2019s close button to exit');
-        }, 300);
+        // Clear session
+        this.token = null;
+        localStorage.removeItem('ds_token');
+        this.user = null;
+        this.clan = null;
+
+        // For PWA standalone or fullscreen mode, window.close() works
+        const isStandalone = window.navigator.standalone === true ||
+            window.matchMedia('(display-mode: standalone)').matches ||
+            window.matchMedia('(display-mode: fullscreen)').matches;
+
+        if (isStandalone) {
+            window.close();
+        }
+
+        // Fallback: navigate to blank page (works everywhere)
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0a12;color:#ffd700;font-family:sans-serif;font-size:24px;font-weight:900;text-align:center;padding:20px;">Thanks for playing!<br><span style=\"font-size:14px;color:#888;margin-top:10px;display:block;\">You can close this tab now.</span></div>';
     }
 
     // ========================================================
