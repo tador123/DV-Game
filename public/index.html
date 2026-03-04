@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#ff2244">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <title>🧛 Dark Survivors</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -112,6 +116,12 @@
         .lobby-section { margin-bottom: 20px; width: 100%; }
         .lobby-actions { display: flex; flex-direction: column; gap: 10px; align-items: center; width: 90%; max-width: 340px; }
         .lobby-actions .btn { width: 100%; }
+
+        /* PWA Install Button */
+        .install-btn { background: linear-gradient(135deg, #00c853, #00e676); border: none; color: #fff; font-weight: 800; font-size: 15px; padding: 12px 24px; border-radius: 10px; cursor: pointer; display: none; width: 100%; margin-top: 4px; letter-spacing: 0.5px; box-shadow: 0 2px 12px rgba(0,200,80,0.3); transition: transform 0.15s; }
+        .install-btn:active { transform: scale(0.97); }
+        .install-banner { display: none; text-align: center; margin-top: 12px; padding: 10px; background: rgba(0,200,80,0.1); border: 1px solid rgba(0,200,80,0.3); border-radius: 10px; color: #aaa; font-size: 12px; }
+        .install-banner strong { color: #00e676; }
 
         .clan-badge {
             display: inline-flex;
@@ -573,6 +583,10 @@
             <button id="login-btn" class="btn btn-red" style="width:100%">⚔ ENTER AS GUEST</button>
         </div>
         <div style="margin-top: 16px; color: #444; font-size: 12px; text-align:center;">WASD / Arrows to move • Touch joystick on mobile</div>
+        <div id="login-install-banner" class="install-banner">
+            <strong>📲 Play fullscreen without the address bar!</strong><br>
+            Tap <strong>Install</strong> in the lobby after logging in, or use your browser's "Add to Home Screen" option.
+        </div>
     </div>
 
     <!-- ========== LOBBY SCREEN ========== -->
@@ -587,6 +601,7 @@
             <button id="play-btn" class="btn btn-red" style="width:100%">▶ PLAY</button>
             <button id="clan-btn" class="btn btn-gold" style="width:100%">⚔ CLAN</button>
             <button id="leaderboard-btn" class="btn btn-blue" style="width:100%">🏆 LEADERBOARD</button>
+            <button id="install-btn" class="install-btn">📲 INSTALL APP (Fullscreen)</button>
             <button id="logout-btn" class="btn btn-outline btn-sm" style="margin-top:8px">Change Name</button>
         </div>
     </div>
@@ -631,5 +646,63 @@
 
     <script src="social.js"></script>
     <script src="game.js"></script>
+
+    <!-- PWA: Service Worker + Install Prompt -->
+    <script>
+    (function() {
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').then(reg => {
+                console.log('SW registered:', reg.scope);
+            }).catch(err => console.warn('SW registration failed:', err));
+        }
+
+        // Capture the beforeinstallprompt event
+        let deferredPrompt = null;
+        const installBtn = document.getElementById('install-btn');
+        const loginBanner = document.getElementById('login-install-banner');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Show install button in lobby
+            if (installBtn) installBtn.style.display = 'block';
+            // Show banner on login screen
+            if (loginBanner) loginBanner.style.display = 'block';
+        });
+
+        // Handle install button click
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (!deferredPrompt) {
+                    // Fallback: show instructions
+                    alert('To install: tap your browser menu (⋮) and select "Add to Home Screen" or "Install App".');
+                    return;
+                }
+                deferredPrompt.prompt();
+                const result = await deferredPrompt.userChoice;
+                if (result.outcome === 'accepted') {
+                    installBtn.style.display = 'none';
+                    if (loginBanner) loginBanner.style.display = 'none';
+                }
+                deferredPrompt = null;
+            });
+        }
+
+        // Hide install UI if already installed (standalone mode)
+        window.addEventListener('appinstalled', () => {
+            if (installBtn) installBtn.style.display = 'none';
+            if (loginBanner) loginBanner.style.display = 'none';
+            deferredPrompt = null;
+        });
+
+        // If already running as PWA, hide install prompts
+        if (window.matchMedia('(display-mode: fullscreen)').matches ||
+            window.matchMedia('(display-mode: standalone)').matches ||
+            window.navigator.standalone === true) {
+            if (loginBanner) loginBanner.style.display = 'none';
+        }
+    })();
+    </script>
 </body>
 </html>
