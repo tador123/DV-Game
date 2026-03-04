@@ -603,11 +603,11 @@
     <!-- ========== TOAST ========== -->
     <div id="toast"></div>
 
-    <!-- iOS install toast (shown when iOS user taps install) -->
+    <!-- Install instructions toast (iOS & Android) -->
     <div id="ios-toast" class="ios-toast">
         <button class="ios-close" id="ios-toast-close">&times;</button>
         <div style="font-size:15px;margin-bottom:8px;"><strong>Install Dark Survivors</strong></div>
-        <div>Tap <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2300e676' stroke-width='2'%3E%3Cpath d='M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8'/%3E%3Cpolyline points='16 6 12 2 8 6'/%3E%3Cline x1='12' y1='2' x2='12' y2='15'/%3E%3C/svg%3E" style="vertical-align:middle;margin:0 2px;"> <strong>Share</strong> at the bottom of Safari,<br>then scroll down and tap <strong>"Add to Home Screen"</strong></div>
+        <div id="install-toast-body"></div>
         <div class="ios-arrow"></div>
     </div>
 
@@ -627,6 +627,8 @@
         // Detect iOS
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isAndroid = /Android/.test(navigator.userAgent);
+        const isMobile = isIOS || isAndroid || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
         const isInStandalone = window.navigator.standalone === true ||
             window.matchMedia('(display-mode: fullscreen)').matches ||
             window.matchMedia('(display-mode: standalone)').matches;
@@ -642,15 +644,21 @@
         // If already running as installed PWA, hide all install UI
         if (isInStandalone) {
             if (loginBanner) loginBanner.style.display = 'none';
-        } else if (isIOS) {
-            // iOS: show install button + iOS-specific instructions
+        } else if (isMobile) {
+            // Always show install button on mobile devices
             if (installBtn) {
                 installBtn.style.display = 'block';
-                installBtn.textContent = '\ud83d\udcf2 ADD TO HOME SCREEN (Fullscreen)';
+                if (isIOS) {
+                    installBtn.textContent = '\ud83d\udcf2 ADD TO HOME SCREEN (Fullscreen)';
+                }
             }
             if (loginBanner) loginBanner.style.display = 'block';
             if (loginInstallText) {
-                loginInstallText.innerHTML = 'In Safari, tap <strong>Share</strong> \u2192 <strong>Add to Home Screen</strong> for fullscreen.';
+                if (isIOS) {
+                    loginInstallText.innerHTML = 'In Safari, tap <strong>Share</strong> \u2192 <strong>Add to Home Screen</strong> for fullscreen.';
+                } else {
+                    loginInstallText.innerHTML = 'In Chrome, tap <strong>\u22ee Menu</strong> \u2192 <strong>Add to Home Screen</strong> for fullscreen.';
+                }
             }
         }
 
@@ -665,22 +673,27 @@
         // Handle install button click
         if (installBtn) {
             installBtn.addEventListener('click', async () => {
-                if (isIOS) {
-                    // Show iOS-specific toast with instructions
-                    if (iosToast) iosToast.style.display = 'block';
+                // If native install prompt is available (HTTPS + Chrome), use it
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const result = await deferredPrompt.userChoice;
+                    if (result.outcome === 'accepted') {
+                        installBtn.style.display = 'none';
+                        if (loginBanner) loginBanner.style.display = 'none';
+                    }
+                    deferredPrompt = null;
                     return;
                 }
-                if (!deferredPrompt) {
-                    alert('To install: tap your browser menu and select "Add to Home Screen" or "Install App".');
-                    return;
+                // Otherwise show platform-specific instructions toast
+                const toastBody = document.getElementById('install-toast-body');
+                if (toastBody) {
+                    if (isIOS) {
+                        toastBody.innerHTML = 'Tap <strong>Share</strong> <span style="font-size:18px;">\u2B06</span> at the bottom of Safari,<br>then scroll down and tap <strong>"Add to Home Screen"</strong>';
+                    } else {
+                        toastBody.innerHTML = 'Tap <strong>\u22ee</strong> (menu) at the top-right of Chrome,<br>then tap <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong>';
+                    }
                 }
-                deferredPrompt.prompt();
-                const result = await deferredPrompt.userChoice;
-                if (result.outcome === 'accepted') {
-                    installBtn.style.display = 'none';
-                    if (loginBanner) loginBanner.style.display = 'none';
-                }
-                deferredPrompt = null;
+                if (iosToast) iosToast.style.display = 'block';
             });
         }
 
