@@ -335,7 +335,7 @@ class ZoneEffect {
 // ============================================================
 // MOBILE DUAL JOYSTICK CONTROLLER
 // Left joystick = movement, Right joystick = aim direction
-// Both appear where the player touches in their respective zones
+// Both are fixed in position — sticks move relative to base center
 // ============================================================
 class JoystickController {
     constructor() {
@@ -347,8 +347,6 @@ class JoystickController {
         this.leftStick = document.getElementById('joystick-stick-left');
         this.leftActive = false;
         this.leftTouchId = null;
-        this.leftOriginX = 0;
-        this.leftOriginY = 0;
         this.dx = 0;
         this.dy = 0;
 
@@ -358,8 +356,6 @@ class JoystickController {
         this.rightStick = document.getElementById('joystick-stick-right');
         this.rightActive = false;
         this.rightTouchId = null;
-        this.rightOriginX = 0;
-        this.rightOriginY = 0;
         this.aimX = 0;
         this.aimY = 0;
         this.aiming = false;
@@ -374,30 +370,22 @@ class JoystickController {
         }
     }
 
-    _toZoneCoords(zone, clientX, clientY) {
-        const r = zone.getBoundingClientRect();
-        return { x: clientX - r.left, y: clientY - r.top };
+    _getBaseCenter(base) {
+        const r = base.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
     }
 
-    _showJoystick(zone, base, stick, clientX, clientY) {
-        const p = this._toZoneCoords(zone, clientX, clientY);
-        base.style.display = 'block';
-        stick.style.display = 'block';
-        base.style.left = (p.x - 60) + 'px';
-        base.style.top = (p.y - 60) + 'px';
-        stick.style.left = (p.x - 26) + 'px';
-        stick.style.top = (p.y - 26) + 'px';
+    _moveStick(stick, dx, dy) {
+        // dx, dy are clamped pixel offsets from center
+        stick.style.left = `calc(50% + ${dx}px)`;
+        stick.style.top = `calc(50% + ${dy}px)`;
+        stick.style.transform = 'translate(-50%, -50%)';
     }
 
-    _hideJoystick(base, stick) {
-        base.style.display = 'none';
-        stick.style.display = 'none';
-    }
-
-    _moveStick(zone, stick, originX, originY, rawDx, rawDy) {
-        const p = this._toZoneCoords(zone, originX + rawDx, originY + rawDy);
-        stick.style.left = (p.x - 26) + 'px';
-        stick.style.top = (p.y - 26) + 'px';
+    _resetStick(stick) {
+        stick.style.left = '50%';
+        stick.style.top = '50%';
+        stick.style.transform = 'translate(-50%, -50%)';
     }
 
     _clampDist(rawDx, rawDy) {
@@ -416,11 +404,8 @@ class JoystickController {
             if (this.leftTouchId !== null) return;
             const t = e.changedTouches[0];
             this.leftTouchId = t.identifier;
-            this.leftOriginX = t.clientX;
-            this.leftOriginY = t.clientY;
             this.leftActive = true;
             this.active = true;
-            this._showJoystick(this.leftZone, this.leftBase, this.leftStick, t.clientX, t.clientY);
         }, { passive: false });
 
         // RIGHT ZONE — touchstart
@@ -429,11 +414,8 @@ class JoystickController {
             if (this.rightTouchId !== null) return;
             const t = e.changedTouches[0];
             this.rightTouchId = t.identifier;
-            this.rightOriginX = t.clientX;
-            this.rightOriginY = t.clientY;
             this.rightActive = true;
             this.aiming = true;
-            this._showJoystick(this.rightZone, this.rightBase, this.rightStick, t.clientX, t.clientY);
         }, { passive: false });
 
         // Global touchmove
@@ -441,17 +423,19 @@ class JoystickController {
             for (const t of e.changedTouches) {
                 // Left joystick
                 if (t.identifier === this.leftTouchId && this.leftActive) {
-                    const raw = this._clampDist(t.clientX - this.leftOriginX, t.clientY - this.leftOriginY);
+                    const center = this._getBaseCenter(this.leftBase);
+                    const raw = this._clampDist(t.clientX - center.x, t.clientY - center.y);
                     this.dx = raw.dx / this.maxDist;
                     this.dy = raw.dy / this.maxDist;
-                    this._moveStick(this.leftZone, this.leftStick, this.leftOriginX, this.leftOriginY, raw.dx, raw.dy);
+                    this._moveStick(this.leftStick, raw.dx, raw.dy);
                 }
                 // Right joystick
                 if (t.identifier === this.rightTouchId && this.rightActive) {
-                    const raw = this._clampDist(t.clientX - this.rightOriginX, t.clientY - this.rightOriginY);
+                    const center = this._getBaseCenter(this.rightBase);
+                    const raw = this._clampDist(t.clientX - center.x, t.clientY - center.y);
                     this.aimX = raw.dx / this.maxDist;
                     this.aimY = raw.dy / this.maxDist;
-                    this._moveStick(this.rightZone, this.rightStick, this.rightOriginX, this.rightOriginY, raw.dx, raw.dy);
+                    this._moveStick(this.rightStick, raw.dx, raw.dy);
                 }
             }
         }, { passive: false });
@@ -465,7 +449,7 @@ class JoystickController {
                     this.active = false;
                     this.dx = 0;
                     this.dy = 0;
-                    this._hideJoystick(this.leftBase, this.leftStick);
+                    this._resetStick(this.leftStick);
                 }
                 if (t.identifier === this.rightTouchId) {
                     this.rightActive = false;
@@ -473,7 +457,7 @@ class JoystickController {
                     this.aiming = false;
                     this.aimX = 0;
                     this.aimY = 0;
-                    this._hideJoystick(this.rightBase, this.rightStick);
+                    this._resetStick(this.rightStick);
                 }
             }
         };
