@@ -1,5 +1,5 @@
 // Dark Survivors — Service Worker (offline + PWA install support)
-const CACHE_NAME = 'dark-survivors-v6';
+const CACHE_NAME = 'dark-survivors-v7';
 const ASSETS = [
     '/',
     '/index.html',
@@ -27,29 +27,20 @@ self.addEventListener('activate', (e) => {
     self.clients.claim();
 });
 
-// Fetch: network-first for API, cache-first for assets
+// Fetch: network-first for everything (fall back to cache if offline)
 self.addEventListener('fetch', (e) => {
-    const url = new URL(e.request.url);
-
-    // Always go to network for API calls
-    if (url.pathname.startsWith('/api/')) {
-        e.respondWith(fetch(e.request).catch(() => new Response('{"error":"offline"}', {
-            headers: { 'Content-Type': 'application/json' }
-        })));
-        return;
-    }
-
-    // Cache-first for static assets
     e.respondWith(
-        caches.match(e.request).then((cached) => {
-            const networkFetch = fetch(e.request).then((response) => {
-                // Update cache with fresh version
+        fetch(e.request).then((response) => {
+            // Update cache with fresh version
+            if (response.ok) {
                 const clone = response.clone();
                 caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
-                return response;
-            }).catch(() => cached);
-
-            return cached || networkFetch;
+            }
+            return response;
+        }).catch(() => {
+            return caches.match(e.request).then((cached) => {
+                return cached || new Response('Offline', { status: 503 });
+            });
         })
     );
 });
