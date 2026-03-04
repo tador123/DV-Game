@@ -1,0 +1,22 @@
+# ============================================================
+# 🧛 DARK SURVIVORS — Docker Compose
+# Run:  docker compose up -d
+# Stop: docker compose down
+# ============================================================
+
+services:
+  dark-survivors:
+    build: .
+    container_name: dark-survivors
+    ports:
+      - "3000:3000"
+    volumes:
+      - game-data:/app/data        # persist player/clan data across restarts
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+    restart: unless-stopped
+
+volumes:
+  game-data:
+    driver: local
