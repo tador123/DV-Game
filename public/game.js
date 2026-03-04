@@ -335,8 +335,8 @@ class ZoneEffect {
 // ============================================================
 // MOBILE DUAL JOYSTICK CONTROLLER
 // Left joystick = movement, Right joystick = aim direction
-// Fixed position bases — stick follows finger direction from base center
-// Pure pixel positioning — no CSS calc/transform tricks
+// Stick stays visually centered — no movement animation
+// Only reads touch direction as input
 // ============================================================
 class JoystickController {
     constructor() {
@@ -345,18 +345,16 @@ class JoystickController {
         // Left joystick (movement)
         this.leftZone = document.getElementById('joystick-zone-left');
         this.leftBase = document.getElementById('joystick-base-left');
-        this.leftStick = document.getElementById('joystick-stick-left');
         this.leftActive = false;
         this.leftTouchId = null;
-        this.leftBaseCX = 0; // cached base center X (viewport)
-        this.leftBaseCY = 0; // cached base center Y (viewport)
+        this.leftBaseCX = 0;
+        this.leftBaseCY = 0;
         this.dx = 0;
         this.dy = 0;
 
         // Right joystick (aim)
         this.rightZone = document.getElementById('joystick-zone-right');
         this.rightBase = document.getElementById('joystick-base-right');
-        this.rightStick = document.getElementById('joystick-stick-right');
         this.rightActive = false;
         this.rightTouchId = null;
         this.rightBaseCX = 0;
@@ -365,8 +363,6 @@ class JoystickController {
         this.aimY = 0;
         this.aiming = false;
 
-        // Base=120px, Stick=52px → centered offset = (120-52)/2 = 34
-        this.stickCenter = 34;
         this.maxDist = 50;
         this.active = false;
 
@@ -382,24 +378,11 @@ class JoystickController {
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
     }
 
-    _moveStick(stick, dx, dy) {
-        // Pure pixel offset from centered position (34,34)
-        stick.style.left = (this.stickCenter + dx) + 'px';
-        stick.style.top = (this.stickCenter + dy) + 'px';
-    }
-
-    _resetStick(stick) {
-        stick.style.left = this.stickCenter + 'px';
-        stick.style.top = this.stickCenter + 'px';
-    }
-
-    _clampDist(rawDx, rawDy) {
+    _clampDir(rawDx, rawDy) {
         const d = Math.sqrt(rawDx * rawDx + rawDy * rawDy);
-        if (d > this.maxDist) {
-            rawDx = (rawDx / d) * this.maxDist;
-            rawDy = (rawDy / d) * this.maxDist;
-        }
-        return { dx: rawDx, dy: rawDy, norm: d > 0 ? Math.min(d, this.maxDist) / this.maxDist : 0 };
+        if (d === 0) return { dx: 0, dy: 0 };
+        const scale = Math.min(d, this.maxDist) / this.maxDist;
+        return { dx: (rawDx / d) * scale, dy: (rawDy / d) * scale };
     }
 
     bindTouch() {
@@ -409,17 +392,14 @@ class JoystickController {
             if (this.leftTouchId !== null) return;
             const t = e.changedTouches[0];
             this.leftTouchId = t.identifier;
-            // Cache base center position in viewport coords
             const c = this._cacheBaseCenter(this.leftBase);
             this.leftBaseCX = c.x;
             this.leftBaseCY = c.y;
             this.leftActive = true;
             this.active = true;
-            // Immediately point stick toward finger
-            const raw = this._clampDist(t.clientX - this.leftBaseCX, t.clientY - this.leftBaseCY);
-            this.dx = raw.dx / this.maxDist;
-            this.dy = raw.dy / this.maxDist;
-            this._moveStick(this.leftStick, raw.dx, raw.dy);
+            const dir = this._clampDir(t.clientX - this.leftBaseCX, t.clientY - this.leftBaseCY);
+            this.dx = dir.dx;
+            this.dy = dir.dy;
         }, { passive: false });
 
         // RIGHT ZONE — touchstart
@@ -428,35 +408,28 @@ class JoystickController {
             if (this.rightTouchId !== null) return;
             const t = e.changedTouches[0];
             this.rightTouchId = t.identifier;
-            // Cache base center position in viewport coords
             const c = this._cacheBaseCenter(this.rightBase);
             this.rightBaseCX = c.x;
             this.rightBaseCY = c.y;
             this.rightActive = true;
             this.aiming = true;
-            // Immediately point stick toward finger
-            const raw = this._clampDist(t.clientX - this.rightBaseCX, t.clientY - this.rightBaseCY);
-            this.aimX = raw.dx / this.maxDist;
-            this.aimY = raw.dy / this.maxDist;
-            this._moveStick(this.rightStick, raw.dx, raw.dy);
+            const dir = this._clampDir(t.clientX - this.rightBaseCX, t.clientY - this.rightBaseCY);
+            this.aimX = dir.dx;
+            this.aimY = dir.dy;
         }, { passive: false });
 
-        // Global touchmove
+        // Global touchmove — update direction only, no visual change
         window.addEventListener('touchmove', (e) => {
             for (const t of e.changedTouches) {
-                // Left joystick — offset from base center
                 if (t.identifier === this.leftTouchId && this.leftActive) {
-                    const raw = this._clampDist(t.clientX - this.leftBaseCX, t.clientY - this.leftBaseCY);
-                    this.dx = raw.dx / this.maxDist;
-                    this.dy = raw.dy / this.maxDist;
-                    this._moveStick(this.leftStick, raw.dx, raw.dy);
+                    const dir = this._clampDir(t.clientX - this.leftBaseCX, t.clientY - this.leftBaseCY);
+                    this.dx = dir.dx;
+                    this.dy = dir.dy;
                 }
-                // Right joystick — offset from base center
                 if (t.identifier === this.rightTouchId && this.rightActive) {
-                    const raw = this._clampDist(t.clientX - this.rightBaseCX, t.clientY - this.rightBaseCY);
-                    this.aimX = raw.dx / this.maxDist;
-                    this.aimY = raw.dy / this.maxDist;
-                    this._moveStick(this.rightStick, raw.dx, raw.dy);
+                    const dir = this._clampDir(t.clientX - this.rightBaseCX, t.clientY - this.rightBaseCY);
+                    this.aimX = dir.dx;
+                    this.aimY = dir.dy;
                 }
             }
         }, { passive: false });
@@ -470,7 +443,6 @@ class JoystickController {
                     this.active = false;
                     this.dx = 0;
                     this.dy = 0;
-                    this._resetStick(this.leftStick);
                 }
                 if (t.identifier === this.rightTouchId) {
                     this.rightActive = false;
@@ -478,7 +450,6 @@ class JoystickController {
                     this.aiming = false;
                     this.aimX = 0;
                     this.aimY = 0;
-                    this._resetStick(this.rightStick);
                 }
             }
         };

@@ -188,17 +188,15 @@ class Social {
         this.user = null;
         this.clan = null;
 
-        // For PWA standalone or fullscreen mode, window.close() works
-        const isStandalone = window.navigator.standalone === true ||
+        // For PWA standalone mode, window.close() works
+        if (window.navigator.standalone === true ||
             window.matchMedia('(display-mode: standalone)').matches ||
-            window.matchMedia('(display-mode: fullscreen)').matches;
-
-        if (isStandalone) {
+            window.matchMedia('(display-mode: fullscreen)').matches) {
             window.close();
         }
 
-        // Fallback: navigate to blank page (works everywhere)
-        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0a12;color:#ffd700;font-family:sans-serif;font-size:24px;font-weight:900;text-align:center;padding:20px;">Thanks for playing!<br><span style=\"font-size:14px;color:#888;margin-top:10px;display:block;\">You can close this tab now.</span></div>';
+        // Navigate away — actually leaves the page
+        window.location.replace('about:blank');
     }
 
     // ========================================================
