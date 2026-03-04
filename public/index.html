@@ -31,8 +31,8 @@
 
         /* ========== COMMON COMPONENTS ========== */
         .btn {
-            padding: 14px 40px;
-            font-size: 16px;
+            padding: 12px 30px;
+            font-size: 14px;
             font-weight: 800;
             color: #fff;
             border: none;
@@ -76,6 +76,10 @@
             flex-direction: column;
             z-index: 200;
             animation: fadeIn 0.3s ease;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            padding: 16px env(safe-area-inset-right, 0px) 16px env(safe-area-inset-left, 0px);
         }
         .overlay.active { display: flex; }
 
@@ -104,26 +108,27 @@
         #login-screen {
             background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a12 100%);
             z-index: 300;
+            padding: 20px;
         }
-        #login-title { font-size: clamp(32px, 8vw, 56px); font-weight: 900; color: #fff; text-shadow: 0 0 30px rgba(255,50,50,0.5); margin-bottom: 4px; letter-spacing: 2px; text-align: center; }
-        #login-tagline { color: #666; font-size: clamp(13px, 3vw, 18px); margin-bottom: 30px; text-align: center; }
-        #login-form { display: flex; flex-direction: column; gap: 12px; align-items: center; width: 90%; max-width: 340px; }
-        #login-form .input { text-align: center; font-size: 18px; }
-        #login-error { color: #ff4444; font-size: 13px; min-height: 18px; text-align: center; }
+        #login-title { font-size: clamp(26px, 7vw, 56px); font-weight: 900; color: #fff; text-shadow: 0 0 30px rgba(255,50,50,0.5); margin-bottom: 2px; letter-spacing: 2px; text-align: center; line-height: 1.1; }
+        #login-tagline { color: #666; font-size: clamp(11px, 2.5vw, 16px); margin-bottom: clamp(12px, 3vh, 30px); text-align: center; }
+        #login-form { display: flex; flex-direction: column; gap: 10px; align-items: center; width: 90%; max-width: 340px; }
+        #login-form .input { text-align: center; font-size: 16px; padding: 10px 14px; }
+        #login-error { color: #ff4444; font-size: 12px; min-height: 16px; text-align: center; }
 
         /* ========== LOBBY SCREEN ========== */
-        #lobby-screen { background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a12 100%); z-index: 250; }
-        #lobby-welcome { color: #aaa; font-size: 14px; margin-bottom: 4px; text-align: center; }
-        #lobby-player-name { color: #ffd700; font-size: 28px; font-weight: 900; margin-bottom: 24px; text-align: center; }
+        #lobby-screen { background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a12 100%); z-index: 250; padding: 16px; gap: 0; }
+        #lobby-welcome { color: #aaa; font-size: clamp(11px, 2.5vw, 14px); margin-bottom: 2px; text-align: center; }
+        #lobby-player-name { color: #ffd700; font-size: clamp(20px, 5vw, 28px); font-weight: 900; margin-bottom: clamp(8px, 2vh, 24px); text-align: center; }
         
-        .lobby-section { margin-bottom: 20px; width: 100%; }
-        .lobby-actions { display: flex; flex-direction: column; gap: 10px; align-items: center; width: 90%; max-width: 340px; }
-        .lobby-actions .btn { width: 100%; }
+        .lobby-section { margin-bottom: 12px; width: 100%; }
+        .lobby-actions { display: flex; flex-direction: column; gap: 8px; align-items: center; width: 90%; max-width: 340px; }
+        .lobby-actions .btn { width: 100%; padding: 12px 30px; font-size: 14px; }
 
         /* PWA Install Button */
-        .install-btn { background: linear-gradient(135deg, #00c853, #00e676); border: none; color: #fff; font-weight: 800; font-size: 15px; padding: 12px 24px; border-radius: 10px; cursor: pointer; display: none; width: 100%; margin-top: 4px; letter-spacing: 0.5px; box-shadow: 0 2px 12px rgba(0,200,80,0.3); transition: transform 0.15s; }
+        .install-btn { background: linear-gradient(135deg, #00c853, #00e676); border: none; color: #fff; font-weight: 800; font-size: 13px; padding: 10px 20px; border-radius: 10px; cursor: pointer; display: none; width: 100%; margin-top: 4px; letter-spacing: 0.5px; box-shadow: 0 2px 12px rgba(0,200,80,0.3); transition: transform 0.15s; }
         .install-btn:active { transform: scale(0.97); }
-        .install-banner { display: none; text-align: center; margin-top: 12px; padding: 10px; background: rgba(0,200,80,0.1); border: 1px solid rgba(0,200,80,0.3); border-radius: 10px; color: #aaa; font-size: 12px; }
+        .install-banner { display: none; text-align: center; margin-top: 8px; padding: 8px; background: rgba(0,200,80,0.1); border: 1px solid rgba(0,200,80,0.3); border-radius: 10px; color: #aaa; font-size: 11px; max-width: 340px; width: 90%; }
         .install-banner strong { color: #00e676; }
 
         /* iOS install toast overlay */
@@ -148,17 +153,19 @@
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin: 12px 0;
+            gap: 6px;
+            margin: 8px 0;
+            width: 90%;
+            max-width: 340px;
         }
         .stats-grid .stat-card {
             background: rgba(255,255,255,0.05);
             border-radius: 8px;
-            padding: 10px;
+            padding: 8px 6px;
             text-align: center;
         }
-        .stats-grid .stat-val { color: #ffd700; font-size: 20px; font-weight: 800; }
-        .stats-grid .stat-label { color: #888; font-size: 11px; margin-top: 2px; }
+        .stats-grid .stat-val { color: #ffd700; font-size: clamp(16px, 4vw, 20px); font-weight: 800; }
+        .stats-grid .stat-label { color: #888; font-size: 10px; margin-top: 1px; }
 
         /* ========== CLAN PANEL ========== */
         #clan-screen { background: rgba(0,0,0,0.85); z-index: 260; }
@@ -442,6 +449,7 @@
 
         /* ========== MOBILE RESPONSIVE ========== */
         @media (max-width: 900px) and (orientation: landscape) {
+            /* --- HUD in-game --- */
             #stats-bar { padding: 2px 8px; padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
             #minimap { top: 38px; right: max(10px, env(safe-area-inset-right, 8px)); width: 60px; height: 60px; }
             #pause-btn { top: 36px; right: max(10px, env(safe-area-inset-right, 8px)); width: 36px; height: 36px; font-size: 16px; }
@@ -449,14 +457,48 @@
             .audio-btn { width: 30px; height: 30px; font-size: 13px; }
             #hp-bar-container { bottom: 48%; width: clamp(80px, 20vw, 140px); height: 6px; }
             #hp-text { bottom: calc(48% + 8px); font-size: 9px; }
+            /* --- Lobby/Login landscape compact --- */
+            .overlay { padding: 10px; align-items: flex-start; justify-content: flex-start; flex-wrap: nowrap; }
+            #login-screen, #lobby-screen { justify-content: center; align-items: center; }
+            #login-title { font-size: clamp(22px, 5vw, 36px); margin-bottom: 0; }
+            #login-tagline { font-size: 11px; margin-bottom: 10px; }
+            #login-form { gap: 6px; max-width: 280px; }
+            #login-form .input { padding: 8px 12px; font-size: 14px; }
+            #login-form .btn { padding: 10px 24px; font-size: 13px; }
+            #lobby-player-name { font-size: clamp(18px, 4vw, 24px); margin-bottom: 6px; }
+            .stats-grid { gap: 4px; margin: 4px 0; max-width: 300px; }
+            .stats-grid .stat-card { padding: 5px 4px; }
+            .stats-grid .stat-val { font-size: 14px; }
+            .stats-grid .stat-label { font-size: 9px; }
+            .lobby-actions { gap: 5px; max-width: 300px; }
+            .lobby-actions .btn { padding: 9px 20px; font-size: 12px; }
+            .install-btn { padding: 8px 16px; font-size: 11px; }
+            .install-banner { padding: 6px; font-size: 10px; margin-top: 4px; }
+            .btn-sm { padding: 6px 14px; font-size: 10px; }
+            .panel { padding: 14px; max-height: 90vh; }
         }
         @media (max-width: 600px) {
-            .panel { padding: 20px; }
-            .stats-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+            .panel { padding: 16px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 5px; }
             #minimap { top: 44px; right: 8px; width: 56px; height: 56px; }
             #pause-btn { top: 42px; right: 8px; width: 38px; height: 38px; font-size: 16px; }
             .audio-controls { top: 42px; right: 52px; }
             .audio-btn { width: 30px; height: 30px; font-size: 12px; }
+        }
+        /* Extra small height (landscape phones) */
+        @media (max-height: 420px) {
+            #login-title { font-size: 22px; }
+            #login-tagline { font-size: 10px; margin-bottom: 6px; }
+            #login-form { gap: 5px; }
+            #login-form .input { padding: 7px 10px; font-size: 13px; }
+            .install-banner { display: none !important; }
+            #lobby-welcome { font-size: 10px; margin-bottom: 1px; }
+            #lobby-player-name { font-size: 18px; margin-bottom: 4px; }
+            .stats-grid .stat-card { padding: 4px 3px; }
+            .stats-grid .stat-val { font-size: 13px; }
+            .lobby-actions { gap: 4px; }
+            .lobby-actions .btn { padding: 8px 16px; font-size: 11px; }
+            .install-btn { font-size: 10px; padding: 7px 12px; }
         }
 
         @media (hover: none) and (pointer: coarse) {
@@ -579,7 +621,7 @@
             <div id="login-error"></div>
             <button id="login-btn" class="btn btn-red" style="width:100%">⚔ ENTER AS GUEST</button>
         </div>
-        <div style="margin-top: 16px; color: #444; font-size: 12px; text-align:center;">WASD / Arrows to move • Touch joystick on mobile</div>
+        <div style="margin-top: 10px; color: #444; font-size: 11px; text-align:center;">WASD / Arrows to move · Touch joystick on mobile</div>
         <div id="login-install-banner" class="install-banner">
             <strong>📲 Play fullscreen without the address bar!</strong><br>
             <span id="login-install-text">Tap <strong>Install</strong> in the lobby after logging in.</span>
