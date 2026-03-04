@@ -1,13 +1,13 @@
 # ============================================================
 # 🧛 DARK SURVIVORS — Docker Compose (Production)
-# Run:  docker compose up -d --build
+# Run:  docker compose up -d
 # Stop: docker compose down
 # Logs: docker compose logs -f
 # ============================================================
 
 services:
   dark-survivors:
-    build: .
+    image: tador2026/dark-survivors:latest
     container_name: dark-survivors
     expose:
       - "3000"

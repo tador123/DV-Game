@@ -56,10 +56,11 @@ if [ ! -f /swapfile ]; then
     echo '/swapfile swap swap defaults 0 0' >> /etc/fstab
 fi
 
-# ---------- 6. Build and start ----------
-echo "[6/6] Building and starting containers..."
+# ---------- 6. Pull and start ----------
+echo "[6/6] Pulling and starting containers..."
 cd "$APP_DIR"
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 
 # ---------- 7. Setup auto-restart on reboot ----------
 cat > /etc/systemd/system/dark-survivors.service << 'EOF'
