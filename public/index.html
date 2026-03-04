@@ -255,6 +255,53 @@
         #gameover-score span { color: #ffd700; }
         .gameover-btns { display: flex; flex-direction: column; gap: 10px; align-items: center; }
 
+        /* ========== AUDIO CONTROLS ========== */
+        .audio-controls {
+            position: fixed;
+            top: 50px;
+            right: 62px;
+            display: none;
+            gap: 6px;
+            z-index: 20;
+            pointer-events: all;
+        }
+        .audio-controls.active { display: flex; }
+        .audio-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,255,255,0.2);
+            color: #fff;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            transition: transform 0.15s;
+        }
+        .audio-btn:hover { transform: scale(1.1); }
+        .pause-sound-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        .pause-sound-btn {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .pause-sound-btn:hover { background: rgba(255,255,255,0.15); }
+
         /* ========== PAUSE BUTTON (in-game) ========== */
         #pause-btn {
             position: fixed;
@@ -392,6 +439,8 @@
             .panel { padding: 20px; }
             .stats-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
             #pause-btn { top: 44px; right: 8px; width: 40px; height: 40px; font-size: 18px; }
+            .audio-controls { top: 44px; right: 54px; }
+            .audio-btn { width: 32px; height: 32px; font-size: 14px; }
         }
 
         /* Force landscape on mobile portrait */
@@ -471,6 +520,12 @@
     <canvas id="minimap" class="hidden"></canvas>
     <div id="kill-flash"></div>
 
+    <!-- ========== AUDIO CONTROLS (in-game) ========== -->
+    <div class="audio-controls" id="audio-controls">
+        <div class="audio-btn" id="sfx-toggle">🔊</div>
+        <div class="audio-btn" id="music-toggle">🎵</div>
+    </div>
+
     <!-- ========== PAUSE BUTTON ========== -->
     <div id="pause-btn">⏸</div>
 
@@ -478,6 +533,10 @@
     <div id="pause-screen">
         <div id="pause-title">⏸ PAUSED</div>
         <div id="pause-subtitle">Game is paused</div>
+        <div class="pause-sound-row">
+            <button class="pause-sound-btn" id="pause-sfx-btn">🔊 SFX: ON</button>
+            <button class="pause-sound-btn" id="pause-music-btn">🎵 Music: ON</button>
+        </div>
         <div class="pause-btns">
             <button id="resume-btn" class="btn btn-green">▶ RESUME</button>
             <button id="pause-lobby-btn" class="btn btn-outline">← Back to Lobby</button>
