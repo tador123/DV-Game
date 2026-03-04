@@ -382,41 +382,6 @@
         }
         .pause-btns .btn { width: 100%; }
 
-        /* ========== LANDSCAPE LOCK OVERLAY ========== */
-        #rotate-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: #0a0a12;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            z-index: 9999;
-            text-align: center;
-            padding: 30px;
-        }
-        #rotate-overlay .rotate-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-            animation: rotatePhone 2s ease-in-out infinite;
-        }
-        #rotate-overlay .rotate-text {
-            color: #fff;
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        #rotate-overlay .rotate-sub {
-            color: #888;
-            font-size: 13px;
-        }
-        @keyframes rotatePhone {
-            0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(90deg); }
-            50% { transform: rotate(90deg); }
-            75% { transform: rotate(0deg); }
-        }
-
         /* ========== MOBILE JOYSTICK ========== */
         #joystick-zone {
             position: fixed;
@@ -460,14 +425,6 @@
             #pause-btn { top: 44px; right: 8px; width: 40px; height: 40px; font-size: 18px; }
             .audio-controls { top: 44px; right: 54px; }
             .audio-btn { width: 32px; height: 32px; font-size: 14px; }
-        }
-
-        /* Force landscape on mobile portrait */
-        @media (max-width: 900px) and (orientation: portrait) and (hover: none) and (pointer: coarse) {
-            #rotate-overlay { display: flex !important; }
-        }
-        @media (orientation: landscape), (hover: hover) {
-            #rotate-overlay { display: none !important; }
         }
 
         @media (hover: none) and (pointer: coarse) {
@@ -560,13 +517,6 @@
             <button id="resume-btn" class="btn btn-green">▶ RESUME</button>
             <button id="pause-lobby-btn" class="btn btn-outline">← Back to Lobby</button>
         </div>
-    </div>
-
-    <!-- ========== ROTATE DEVICE OVERLAY ========== -->
-    <div id="rotate-overlay">
-        <div class="rotate-icon">📱</div>
-        <div class="rotate-text">Rotate Your Device</div>
-        <div class="rotate-sub">This game is best played in landscape mode</div>
     </div>
 
     <!-- ========== MOBILE JOYSTICK ========== -->
