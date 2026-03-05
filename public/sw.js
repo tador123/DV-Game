@@ -1,11 +1,12 @@
 // Dark Survivors — Service Worker (offline + PWA install support)
-const CACHE_NAME = 'dark-survivors-v20a';
+const CACHE_NAME = 'dark-survivors-v21';
 const ASSETS = [
     '/',
     '/index.html',
     '/game.js',
     '/social.js',
     '/bg-music.mp3',
+    '/lobby-music.mp3',
     '/manifest.json'
 ];
 

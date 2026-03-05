@@ -334,6 +334,11 @@ class Social {
         const lobby = document.getElementById('lobby-screen');
         lobby.classList.add('active');
 
+        // Start lobby music + beat visualizer
+        if (typeof game !== 'undefined' && game.audio) {
+            game.audio.startLobbyMusic();
+        }
+
         document.getElementById('lobby-player-name').textContent = this.user.name;
 
         // Stats
@@ -375,6 +380,10 @@ class Social {
 
     startGame() {
         this._stopNotifPolling();
+        // Stop lobby music before starting game
+        if (typeof game !== 'undefined' && game.audio) {
+            game.audio.stopLobbyMusic();
+        }
         document.getElementById('lobby-screen').classList.remove('active');
         document.getElementById('gameover-screen').classList.remove('active');
         // Game will be started via game.js integration

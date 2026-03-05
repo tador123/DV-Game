@@ -44,6 +44,12 @@ class AudioManager {
         this.sfxOn = true;
         this.musicOn = true;
         this.bgMusic = null;
+        // Lobby music + beat detection
+        this.lobbyMusic = null;
+        this.lobbySource = null;
+        this.analyser = null;
+        this.freqData = null;
+        this._lobbyVizRAF = null;
     }
 
     init() {
@@ -74,10 +80,190 @@ class AudioManager {
         }
     }
 
+    // ---- Lobby Music with beat analyser ----
+    startLobbyMusic() {
+        if (this.lobbyMusic) return;
+        this.init(); // ensure ctx exists
+        try {
+            this.lobbyMusic = new Audio('lobby-music.mp3');
+            this.lobbyMusic.loop = true;
+            this.lobbyMusic.volume = this.musicOn ? this.musicVolume : 0;
+            this.lobbyMusic.crossOrigin = 'anonymous';
+
+            // Connect to Web Audio for analysis
+            if (this.ctx) {
+                this.lobbySource = this.ctx.createMediaElementSource(this.lobbyMusic);
+                this.analyser = this.ctx.createAnalyser();
+                this.analyser.fftSize = 256;
+                this.analyser.smoothingTimeConstant = 0.8;
+                this.lobbySource.connect(this.analyser);
+                this.analyser.connect(this.ctx.destination);
+                this.freqData = new Uint8Array(this.analyser.frequencyBinCount);
+            }
+            this.lobbyMusic.play().catch(() => {});
+            this._startBeatViz();
+        } catch (e) {}
+    }
+
+    stopLobbyMusic() {
+        this._stopBeatViz();
+        if (this.lobbyMusic) {
+            this.lobbyMusic.pause();
+            this.lobbyMusic.currentTime = 0;
+        }
+        if (this.lobbySource) {
+            try { this.lobbySource.disconnect(); } catch(e) {}
+            this.lobbySource = null;
+        }
+        if (this.analyser) {
+            try { this.analyser.disconnect(); } catch(e) {}
+            this.analyser = null;
+        }
+        this.lobbyMusic = null;
+        this.freqData = null;
+    }
+
+    // Get bass energy 0-1 from analyser
+    getBassEnergy() {
+        if (!this.analyser || !this.freqData) return 0;
+        this.analyser.getByteFrequencyData(this.freqData);
+        // Average the first 8 bins (sub-bass + bass ~0-350Hz)
+        let sum = 0;
+        for (let i = 0; i < 8; i++) sum += this.freqData[i];
+        return (sum / 8) / 255;
+    }
+
+    // Get mid energy for secondary effects
+    getMidEnergy() {
+        if (!this.analyser || !this.freqData) return 0;
+        let sum = 0;
+        for (let i = 8; i < 32; i++) sum += this.freqData[i];
+        return (sum / 24) / 255;
+    }
+
+    // ---- Beat Visualizer (lobby background canvas) ----
+    _startBeatViz() {
+        const canvas = document.getElementById('lobby-beat-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let time = 0;
+        // Ring particles — persistent energy ring pool
+        const rings = [];
+        let lastBeat = 0;
+
+        const resize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+        resize();
+        window.addEventListener('resize', resize);
+        this._beatVizResize = resize;
+
+        const draw = () => {
+            this._lobbyVizRAF = requestAnimationFrame(draw);
+            const w = canvas.width, h = canvas.height;
+            const cx = w / 2, cy = h / 2;
+            time += 0.016;
+
+            const bass = this.getBassEnergy();
+            const mid = this.getMidEnergy();
+
+            // Clear with slight trail
+            ctx.fillStyle = 'rgba(6,10,16,0.25)';
+            ctx.fillRect(0, 0, w, h);
+
+            // === 1: Central radial glow pulsing with bass ===
+            const glowR = Math.min(w, h) * (0.15 + bass * 0.35);
+            const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
+            grad.addColorStop(0, `rgba(0,255,200,${0.04 + bass * 0.08})`);
+            grad.addColorStop(0.5, `rgba(80,0,200,${0.02 + bass * 0.04})`);
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+
+            // === 2: Expanding rings on strong beats ===
+            if (bass > 0.55 && time - lastBeat > 0.3) {
+                lastBeat = time;
+                rings.push({
+                    x: cx, y: cy,
+                    r: 20, maxR: Math.min(w, h) * 0.6,
+                    alpha: 0.4 + bass * 0.3,
+                    speed: 2 + bass * 4,
+                    hue: Math.random() > 0.5 ? 160 : 270, // cyan or purple
+                });
+            }
+            for (let i = rings.length - 1; i >= 0; i--) {
+                const ring = rings[i];
+                ring.r += ring.speed;
+                ring.alpha *= 0.985;
+                if (ring.alpha < 0.01 || ring.r > ring.maxR) {
+                    rings.splice(i, 1);
+                    continue;
+                }
+                ctx.beginPath();
+                ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
+                ctx.strokeStyle = `hsla(${ring.hue},100%,60%,${ring.alpha})`;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            // === 3: Horizontal scanning wave ===
+            const scanY = (Math.sin(time * 0.7) * 0.5 + 0.5) * h;
+            const scanGrad = ctx.createLinearGradient(0, scanY - 30, 0, scanY + 30);
+            scanGrad.addColorStop(0, 'rgba(0,255,200,0)');
+            scanGrad.addColorStop(0.5, `rgba(0,255,200,${0.03 + mid * 0.06})`);
+            scanGrad.addColorStop(1, 'rgba(0,255,200,0)');
+            ctx.fillStyle = scanGrad;
+            ctx.fillRect(0, scanY - 30, w, 60);
+
+            // === 4: Corner vignette energy ===
+            const vigR = Math.max(w, h) * 0.7;
+            const vig = ctx.createRadialGradient(cx, cy, vigR * 0.4, cx, cy, vigR);
+            vig.addColorStop(0, 'rgba(0,0,0,0)');
+            vig.addColorStop(1, `rgba(0,0,0,${0.3 + bass * 0.15})`);
+            ctx.fillStyle = vig;
+            ctx.fillRect(0, 0, w, h);
+
+            // === 5: Subtle floating particles ===
+            const particleCount = 6;
+            for (let i = 0; i < particleCount; i++) {
+                const angle = (time * 0.3 + i * (Math.PI * 2 / particleCount));
+                const dist = Math.min(w, h) * (0.18 + mid * 0.15);
+                const px = cx + Math.cos(angle) * dist;
+                const py = cy + Math.sin(angle) * dist;
+                const pSize = 1.5 + bass * 3;
+                ctx.beginPath();
+                ctx.arc(px, py, pSize, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0,255,200,${0.15 + bass * 0.3})`;
+                ctx.fill();
+            }
+        };
+        draw();
+    }
+
+    _stopBeatViz() {
+        if (this._lobbyVizRAF) {
+            cancelAnimationFrame(this._lobbyVizRAF);
+            this._lobbyVizRAF = null;
+        }
+        if (this._beatVizResize) {
+            window.removeEventListener('resize', this._beatVizResize);
+            this._beatVizResize = null;
+        }
+        const canvas = document.getElementById('lobby-beat-canvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+
     toggleMusic() {
         this.musicOn = !this.musicOn;
         if (this.bgMusic) {
             this.bgMusic.volume = this.musicOn ? this.musicVolume : 0;
+        }
+        if (this.lobbyMusic) {
+            this.lobbyMusic.volume = this.musicOn ? this.musicVolume : 0;
         }
         this.updateSoundButtons();
     }
@@ -925,6 +1111,7 @@ class Game {
         }
     }
 
+
     requestFullscreen() {
         if (!this.joystick.isMobile) return;
         const el = document.documentElement;
@@ -1768,6 +1955,8 @@ class Game {
     async gameOver() {
         this.state = 'gameover';
         this.audio.stopMusic();
+        // Restart lobby music for lobby/gameover screens
+        this.audio.startLobbyMusic();
         this.showHUD(false);
 
         const score = Math.floor(this.kills * 10 + this.gameTime * 5 + this.player.level * 50);
