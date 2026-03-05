@@ -554,7 +554,7 @@ class ZoneEffect {
 // ============================================================
 // MOBILE DUAL JOYSTICK CONTROLLER
 // Canvas-drawn joysticks — always at fixed screen positions
-// Left = movement, Right = aim
+// Left = movement, Right = shoot
 // ============================================================
 class JoystickController {
     constructor(canvas) {
@@ -705,7 +705,7 @@ class JoystickController {
         ctx.textAlign = 'center';
         ctx.fillText('MOVE', lc.x, lc.y + this.baseRadius + 16);
 
-        // --- Right joystick (aim) ---
+        // --- Right joystick (shoot) ---
         // Base circle
         ctx.beginPath();
         ctx.arc(rc.x, rc.y, this.baseRadius, 0, Math.PI * 2);
@@ -726,7 +726,7 @@ class JoystickController {
         ctx.fillStyle = 'rgba(255,255,255,0.2)';
         ctx.font = '700 10px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('AIM', rc.x, rc.y + this.baseRadius + 16);
+        ctx.fillText('SHOOT', rc.x, rc.y + this.baseRadius + 16);
     }
 
     getInput() {
