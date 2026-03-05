@@ -722,6 +722,44 @@
 
         /* Joystick is now canvas-drawn — no DOM elements needed */
 
+        /* ========== ROTATE DEVICE OVERLAY (login/register in landscape) ========== */
+        #rotate-device-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            background: radial-gradient(ellipse at center, #0d1117 0%, #060a10 100%);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 16px;
+            text-align: center;
+            padding: 20px;
+        }
+        #rotate-device-overlay .rotate-icon {
+            font-size: 56px;
+            animation: floatUp 2s ease-in-out infinite;
+            filter: drop-shadow(0 0 12px rgba(0,255,200,0.4));
+        }
+        #rotate-device-overlay .rotate-text {
+            color: #00ffc8;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 12px rgba(0,255,200,0.4);
+        }
+        #rotate-device-overlay .rotate-sub {
+            color: rgba(0,255,200,0.3);
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        /* Show on mobile landscape when login screen is active */
+        @media (max-height: 500px) and (orientation: landscape) {
+            body.auth-active #rotate-device-overlay { display: flex; }
+            body.auth-active #login-screen { display: none !important; }
+        }
+
         /* ========== MOBILE RESPONSIVE ========== */
         @media (max-width: 900px) and (orientation: landscape) {
             /* --- HUD in-game --- */
@@ -734,12 +772,7 @@
             #hp-text { bottom: calc(48% + 8px); font-size: 9px; }
             /* --- Lobby/Login landscape compact --- */
             .overlay { padding: 10px; align-items: flex-start; justify-content: flex-start; flex-wrap: nowrap; }
-            #login-screen, #lobby-screen { justify-content: center; align-items: center; }
-            #login-title { font-size: clamp(22px, 5vw, 36px); margin-bottom: 0; }
-            #login-tagline { font-size: 11px; margin-bottom: 10px; }
-            #login-form { gap: 6px; max-width: 280px; }
-            #login-form .input { padding: 8px 12px; font-size: 14px; }
-            #login-form .btn { padding: 10px 24px; font-size: 13px; }
+            #lobby-screen { justify-content: center; align-items: center; }
             #lobby-player-name { font-size: clamp(18px, 4vw, 24px); margin-bottom: 6px; }
             .stats-grid { gap: 4px; margin: 4px 0; max-width: 300px; }
             .stats-grid .stat-card { padding: 5px 4px; border-radius: 8px; }
@@ -910,7 +943,7 @@
         #toast.show { transform: translateX(-50%) translateY(0); }
     </style>
 </head>
-<body>
+<body class="auth-active">
     <canvas id="gameCanvas"></canvas>
 
     <!-- ========== HUD ========== -->
@@ -959,6 +992,13 @@
         <div id="upgrade-title">⬆ LEVEL UP!</div>
         <div id="upgrade-subtitle">Choose an upgrade</div>
         <div id="upgrade-options"></div>
+    </div>
+
+    <!-- ========== ROTATE DEVICE OVERLAY ========== -->
+    <div id="rotate-device-overlay">
+        <div class="rotate-icon">📱</div>
+        <div class="rotate-text">Rotate Your Device</div>
+        <div class="rotate-sub">Please switch to portrait mode to login</div>
     </div>
 
     <!-- ========== LOGIN SCREEN ========== -->
@@ -1087,8 +1127,8 @@
         <div class="ios-arrow"></div>
     </div>
 
-    <script src="social.js?v=12"></script>
-    <script src="game.js?v=12"></script>
+    <script src="social.js?v=13"></script>
+    <script src="game.js?v=13"></script>
 
     <!-- PWA: Service Worker + Install Prompt -->
     <script>

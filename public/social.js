@@ -96,6 +96,7 @@ class Social {
             localStorage.setItem('ds_token', this.token);
 
             document.getElementById('login-screen').classList.remove('active');
+            document.body.classList.remove('auth-active');
             this.showLobby();
         } catch (e) {
             errEl.textContent = e.message;
@@ -151,6 +152,7 @@ class Social {
 
             this.toast('Account created! Welcome, ' + this.user.name);
             document.getElementById('login-screen').classList.remove('active');
+            document.body.classList.remove('auth-active');
             this.showLobby();
         } catch (e) {
             errEl.textContent = e.message;
@@ -242,6 +244,7 @@ class Social {
             const data = await this.api('GET', `/api/user/${this.token}`);
             this.user = data.user;
             document.getElementById('login-screen').classList.remove('active');
+            document.body.classList.remove('auth-active');
             this.showLobby();
         } catch (e) {
             // Token expired or invalid
@@ -260,6 +263,7 @@ class Social {
         this.clan = null;
         document.getElementById('lobby-screen').classList.remove('active');
         document.getElementById('login-screen').classList.add('active');
+        document.body.classList.add('auth-active');
         // Clear login fields
         document.getElementById('login-name').value = '';
         document.getElementById('login-password').value = '';
