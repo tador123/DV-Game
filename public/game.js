@@ -50,12 +50,35 @@ class AudioManager {
         this.analyser = null;
         this.freqData = null;
         this._lobbyVizRAF = null;
+        this._gestureUnlocked = false;
+
+        // Listen for first user gesture to unlock AudioContext
+        const unlock = () => {
+            if (this._gestureUnlocked) return;
+            this._gestureUnlocked = true;
+            this.init();
+            // If lobby music was waiting for context, connect it now
+            if (this.lobbyMusic && !this.lobbySource && this.ctx) {
+                this._connectLobbyAnalyser();
+            }
+            document.removeEventListener('click', unlock, true);
+            document.removeEventListener('touchstart', unlock, true);
+            document.removeEventListener('keydown', unlock, true);
+        };
+        document.addEventListener('click', unlock, true);
+        document.addEventListener('touchstart', unlock, true);
+        document.addEventListener('keydown', unlock, true);
     }
 
     init() {
+        if (this.ctx) {
+            // Resume if suspended (autoplay policy)
+            if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+            return;
+        }
         try {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            if (this.ctx.state === 'suspended') this.ctx.resume();
+            if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
         } catch (e) {
             this.enabled = false;
         }
@@ -83,25 +106,36 @@ class AudioManager {
     // ---- Lobby Music with beat analyser ----
     startLobbyMusic() {
         if (this.lobbyMusic) return;
-        this.init(); // ensure ctx exists
+        this.init(); // ensure ctx exists (works if called during gesture)
         try {
             this.lobbyMusic = new Audio('lobby-music.mp3');
             this.lobbyMusic.loop = true;
             this.lobbyMusic.volume = this.musicOn ? this.musicVolume : 0;
             this.lobbyMusic.crossOrigin = 'anonymous';
 
-            // Connect to Web Audio for analysis
-            if (this.ctx) {
-                this.lobbySource = this.ctx.createMediaElementSource(this.lobbyMusic);
-                this.analyser = this.ctx.createAnalyser();
-                this.analyser.fftSize = 256;
-                this.analyser.smoothingTimeConstant = 0.8;
-                this.lobbySource.connect(this.analyser);
-                this.analyser.connect(this.ctx.destination);
-                this.freqData = new Uint8Array(this.analyser.frequencyBinCount);
+            // Connect analyser if ctx is ready, otherwise deferred to gesture unlock
+            if (this.ctx && this.ctx.state !== 'suspended') {
+                this._connectLobbyAnalyser();
             }
             this.lobbyMusic.play().catch(() => {});
             this._startBeatViz();
+        } catch (e) {}
+    }
+
+    _connectLobbyAnalyser() {
+        if (this.lobbySource || !this.lobbyMusic || !this.ctx) return;
+        try {
+            this.lobbySource = this.ctx.createMediaElementSource(this.lobbyMusic);
+            this.analyser = this.ctx.createAnalyser();
+            this.analyser.fftSize = 256;
+            this.analyser.smoothingTimeConstant = 0.8;
+            this.lobbySource.connect(this.analyser);
+            this.analyser.connect(this.ctx.destination);
+            this.freqData = new Uint8Array(this.analyser.frequencyBinCount);
+            // Ensure audio plays through the connected nodes
+            if (this.lobbyMusic.paused && this.musicOn) {
+                this.lobbyMusic.play().catch(() => {});
+            }
         } catch (e) {}
     }
 
