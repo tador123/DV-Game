@@ -679,6 +679,77 @@
         .mute-toggle input:checked ~ .mute-switch { background: rgba(0,200,80,0.3); }
         .mute-toggle input:checked ~ .mute-switch::after { left: 18px; background: #00e676; }
 
+        /* ========== DETAIL POPUP (player / clan) ========== */
+        .detail-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7); z-index: 9500;
+            display: flex; align-items: center; justify-content: center;
+            animation: fadeIn 0.2s ease;
+            padding: 16px;
+        }
+        .detail-card {
+            background: linear-gradient(135deg, rgba(15,15,40,0.98), rgba(8,8,25,0.98));
+            border: 1px solid rgba(0,255,200,0.2);
+            border-radius: 16px;
+            padding: 24px 20px;
+            max-width: 320px;
+            width: 100%;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 20px rgba(0,255,200,0.05);
+            text-align: center;
+            animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .detail-card .detail-name {
+            color: #fff; font-size: 18px; font-weight: 900;
+            margin-bottom: 4px; text-shadow: 0 0 10px rgba(0,255,200,0.15);
+        }
+        .detail-card .detail-sub {
+            color: #777; font-size: 11px; margin-bottom: 14px;
+        }
+        .detail-stats-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0;
+        }
+        .detail-stat {
+            background: rgba(0,255,200,0.04);
+            border: 1px solid rgba(0,255,200,0.1);
+            border-radius: 10px;
+            padding: 10px 6px;
+            text-align: center;
+        }
+        .detail-stat .ds-val {
+            color: #00ffc8; font-size: 16px; font-weight: 800;
+            text-shadow: 0 0 6px rgba(0,255,200,0.25);
+        }
+        .detail-stat .ds-label {
+            color: rgba(0,255,200,0.4); font-size: 9px; text-transform: uppercase;
+            letter-spacing: 0.5px; margin-top: 2px;
+        }
+        .detail-stat.gold .ds-val { color: #ffd700; text-shadow: 0 0 6px rgba(255,215,0,0.25); }
+        .detail-stat.gold { border-color: rgba(255,215,0,0.15); background: rgba(255,215,0,0.04); }
+        .detail-stat.red .ds-val { color: #ff5555; text-shadow: 0 0 6px rgba(255,85,85,0.25); }
+        .detail-stat.red { border-color: rgba(255,85,85,0.12); background: rgba(255,85,85,0.04); }
+        .detail-card .detail-close {
+            margin-top: 14px;
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+            color: #aaa; padding: 8px 24px; border-radius: 10px;
+            cursor: pointer; font-size: 12px; font-weight: 700;
+            font-family: inherit; transition: all 0.2s;
+        }
+        .detail-card .detail-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
+        .lb-name { cursor: pointer; }
+        .lb-name:hover { color: #00ffc8; }
+        .lb-clan { cursor: pointer; }
+        .lb-clan:hover { color: #00bfff; text-decoration: underline; }
+        .member-row { cursor: pointer; transition: background 0.15s; }
+        .member-row:hover { background: rgba(0,255,200,0.06) !important; }
+        .clan-rank-row { cursor: pointer; transition: background 0.15s; }
+        .clan-rank-row:hover { background: rgba(100,200,255,0.1) !important; }
+
         /* ========== HUD ========== */
         #hud { position: fixed; top: 0; left: 0; right: 0; pointer-events: none; z-index: 10; padding-top: env(safe-area-inset-top, 0px); }
         #xp-bar-container { width: 100%; height: 5px; background: rgba(0,0,0,0.8); }
@@ -1251,11 +1322,6 @@
             <button id="install-btn" class="install-btn">📲 INSTALL APP (Fullscreen)</button>
             <button id="logout-btn" class="btn btn-outline btn-sm" style="margin-top:8px">⏻ Logout</button>
             <button id="exit-btn" class="btn btn-outline btn-sm" style="margin-top:2px;color:#ff4444;border-color:rgba(255,68,68,0.15);">✕ EXIT GAME</button>
-            <label class="mute-toggle" id="mute-notif-toggle">
-                <input type="checkbox" id="mute-notif-cb">
-                <span class="mute-switch"></span>
-                <span>Clan Notifications</span>
-            </label>
         </div>
     </div>
 
@@ -1308,8 +1374,8 @@
         <div class="ios-arrow"></div>
     </div>
 
-    <script src="social.js?v=19"></script>
-    <script src="game.js?v=19"></script>
+    <script src="social.js?v=20"></script>
+    <script src="game.js?v=20"></script>
 
     <!-- PWA: Service Worker + Install Prompt -->
     <script>

@@ -318,17 +318,6 @@ class Social {
         // Exit game button
         document.getElementById('exit-btn').addEventListener('click', () => this.exitGame());
 
-        // Mute notifications toggle
-        const muteBox = document.getElementById('mute-notif-cb');
-        if (muteBox) {
-            muteBox.checked = !this._notifMuted;
-            muteBox.addEventListener('change', () => {
-                this._notifMuted = !muteBox.checked;
-                localStorage.setItem('ds_mute_notif', this._notifMuted ? '1' : '0');
-                this.toast(this._notifMuted ? 'Clan notifications muted' : 'Clan notifications enabled');
-            });
-        }
-
         // Leaderboard tabs
         document.querySelectorAll('#leaderboard-panel .tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -346,10 +335,6 @@ class Social {
         lobby.classList.add('active');
 
         document.getElementById('lobby-player-name').textContent = this.user.name;
-
-        // Sync mute checkbox state
-        const muteBox = document.getElementById('mute-notif-cb');
-        if (muteBox) muteBox.checked = !this._notifMuted;
 
         // Stats
         const statsEl = document.getElementById('lobby-stats');
@@ -527,7 +512,7 @@ class Social {
 
                 <h3>👥 Members (Rank by Score)</h3>
                 <div id="members-list">
-                    ${members.map(m => {
+                    ${members.map((m, idx) => {
                         const roleBadge = m.role === 'admin' ? '<span class="role-badge role-admin">Admin</span>'
                             : m.role === 'manager' ? '<span class="role-badge role-manager">Manager</span>' : '';
                         const isMe = m.id === this.token;
@@ -541,7 +526,7 @@ class Social {
                             }
                         }
                         return `
-                        <div class="member-row">
+                        <div class="member-row" data-midx="${idx}">
                             <span class="member-rank">${m.rank <= 3 ? ['🥇','🥈','🥉'][m.rank-1] : '#'+m.rank}</span>
                             <span class="member-name">${m.name}${roleBadge}${isMe ? ' <span style="color:#555;font-size:11px">(You)</span>' : ''}</span>
                             ${actions}
@@ -550,11 +535,26 @@ class Social {
                     }).join('')}
                 </div>
 
-                <div style="display:flex;gap:8px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
+                <div style="display:flex;gap:8px;justify-content:center;margin-top:20px;flex-wrap:wrap;align-items:center;">
+                    <label class="mute-toggle" style="margin:0;">
+                        <input type="checkbox" id="clan-mute-notif-cb" ${!this._notifMuted ? 'checked' : ''}>
+                        <span class="mute-switch"></span>
+                        <span class="mute-label">🔔 Notifications</span>
+                    </label>
                     <button class="btn btn-outline btn-sm" id="leave-clan-btn" style="color:#ff4444;border-color:rgba(255,68,68,0.3);">Leave Clan</button>
                     <button class="btn btn-outline btn-sm" id="close-clan-btn">✕ Close</button>
                 </div>
             `;
+
+            // Mute toggle binding
+            const muteBox = document.getElementById('clan-mute-notif-cb');
+            if (muteBox) {
+                muteBox.addEventListener('change', () => {
+                    this._notifMuted = !muteBox.checked;
+                    localStorage.setItem('ds_mute_notif', this._notifMuted ? '1' : '0');
+                    this.toast(this._notifMuted ? 'Clan notifications muted' : 'Clan notifications enabled');
+                });
+            }
 
             document.getElementById('copy-invite-btn').addEventListener('click', () => {
                 const code = this.clan.inviteCode;
@@ -569,7 +569,8 @@ class Social {
 
             // Bind role action buttons
             panel.querySelectorAll('.role-action-btn').forEach(btn => {
-                btn.addEventListener('click', async () => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
                     const targetId = btn.dataset.id;
                     const action = btn.dataset.action;
                     const newRole = action === 'promote' ? 'manager' : 'member';
@@ -578,6 +579,28 @@ class Social {
                         this.toast(action === 'promote' ? 'Promoted to Manager!' : 'Demoted to Member');
                         await this.showClanDetails(panel);
                     } catch (e) { this.toast(e.message); }
+                });
+            });
+
+            // Bind member row clicks → show player detail
+            panel.querySelectorAll('.member-row').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    // Don't trigger if they clicked a role action button
+                    if (e.target.closest('.role-action-btn')) return;
+                    const idx = parseInt(el.dataset.midx);
+                    if (!isNaN(idx)) {
+                        const m = members[idx];
+                        // Pass member data formatted for showPlayerDetail
+                        this.showPlayerDetail({
+                            name: m.name,
+                            country: null,
+                            clanTag: this.clan ? this.clan.tag : null,
+                            bestScore: m.bestScore,
+                            totalGamesPlayed: m.totalGamesPlayed,
+                            totalKills: m.totalKills,
+                            bestLevel: m.bestLevel
+                        });
+                    }
                 });
             });
         } catch (e) {
@@ -664,7 +687,7 @@ class Social {
             if (pData.players.length === 0) {
                 container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">No players yet. Be the first!</p>';
             } else {
-                container.innerHTML = pData.players.map(p => {
+                container.innerHTML = pData.players.map((p, idx) => {
                     const flag = this._flag(p.country);
                     const isMe = p.id === this.token;
                     const alreadyInClan = !!p.clanId;
@@ -674,11 +697,35 @@ class Social {
                     <div class="lb-row">
                         <span class="lb-rank">${p.rank <= 3 ? ['🥇','🥈','🥉'][p.rank-1] : '#'+p.rank}</span>
                         ${flag ? `<span class="lb-flag">${flag}</span>` : ''}
-                        <span class="lb-name">${p.name}${p.clanTag ? ` <span class="lb-clan">[${p.clanTag}]</span>` : ''}</span>
+                        <span class="lb-name" data-pidx="${idx}">${p.name}${p.clanTag ? ` <span class="lb-clan" data-cidx="${idx}">[${p.clanTag}]</span>` : ''}</span>
                         ${showInvite ? `<button class="lb-invite-btn" data-target="${p.id}">+ Invite</button>` : ''}
                         <span class="lb-score">${p.bestScore.toLocaleString()}</span>
                     </div>`;
                 }).join('');
+
+                // Bind player name clicks → show player detail
+                container.querySelectorAll('.lb-name').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        // If they clicked a clan tag inside the name, don't also open player
+                        if (e.target.classList.contains('lb-clan')) return;
+                        const idx = parseInt(el.dataset.pidx);
+                        if (!isNaN(idx)) this.showPlayerDetail(pData.players[idx]);
+                    });
+                });
+
+                // Bind clan tag clicks → show clan detail popup
+                container.querySelectorAll('.lb-clan').forEach(el => {
+                    el.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const idx = parseInt(el.dataset.cidx);
+                        const player = pData.players[idx];
+                        if (!player || !player.clanId) return;
+                        try {
+                            const cData = await this.api('GET', `/api/clan/${player.clanId}/members`);
+                            if (cData.clan) this.showClanDetailPopup(cData.clan);
+                        } catch (err) { this.toast('Could not load clan details'); }
+                    });
+                });
 
                 // Bind invite buttons
                 container.querySelectorAll('.lb-invite-btn').forEach(btn => {
@@ -707,8 +754,8 @@ class Social {
             if (cData.clans.length === 0) {
                 container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">No clans yet. Create one!</p>';
             } else {
-                container.innerHTML = cData.clans.map(c => `
-                    <div class="clan-rank-row">
+                container.innerHTML = cData.clans.map((c, idx) => `
+                    <div class="clan-rank-row" data-cridx="${idx}">
                         <span class="clan-rank-num">${c.rank <= 3 ? ['🥇','🥈','🥉'][c.rank-1] : '#'+c.rank}</span>
                         <div class="clan-rank-info">
                             <div class="clan-rank-name">[${c.tag}] ${c.name}</div>
@@ -720,6 +767,14 @@ class Social {
                         </div>
                     </div>
                 `).join('');
+
+                // Bind clan row clicks → show clan detail popup
+                container.querySelectorAll('.clan-rank-row').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const idx = parseInt(el.dataset.cridx);
+                        if (!isNaN(idx)) this.showClanDetailPopup(cData.clans[idx]);
+                    });
+                });
             }
         } catch (e) {
             document.getElementById('lb-clans-content').innerHTML = '<p style="color:#ff4444">Failed to load</p>';
@@ -780,6 +835,74 @@ class Social {
         } catch (e) {
             area.innerHTML = '';
         }
+    }
+
+    // ========================================================
+    // PLAYER & CLAN DETAIL POPUPS
+    // ========================================================
+    showPlayerDetail(p) {
+        this._closeDetailOverlay();
+        const flag = this._flag(p.country) || '';
+        const overlay = document.createElement('div');
+        overlay.className = 'detail-overlay';
+        overlay.innerHTML = `
+            <div class="detail-card">
+                <button class="detail-close">✕</button>
+                <h2>${flag} ${p.name}</h2>
+                ${p.clanTag ? `<p style="color:#00e5ff;font-size:13px;margin-top:-6px;">[${p.clanTag}]</p>` : ''}
+                <div class="detail-stats-grid">
+                    <div class="detail-stat gold">
+                        <div class="detail-stat-val">${(p.bestScore || 0).toLocaleString()}</div>
+                        <div class="detail-stat-label">Best Score</div>
+                    </div>
+                    <div class="detail-stat">
+                        <div class="detail-stat-val">${(p.totalGamesPlayed || 0).toLocaleString()}</div>
+                        <div class="detail-stat-label">Games Played</div>
+                    </div>
+                    <div class="detail-stat red">
+                        <div class="detail-stat-val">${(p.totalKills || 0).toLocaleString()}</div>
+                        <div class="detail-stat-label">Total Kills</div>
+                    </div>
+                    <div class="detail-stat">
+                        <div class="detail-stat-val">${p.bestLevel || 1}</div>
+                        <div class="detail-stat-label">Best Level</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) this._closeDetailOverlay(); });
+        overlay.querySelector('.detail-close').addEventListener('click', () => this._closeDetailOverlay());
+    }
+
+    showClanDetailPopup(c) {
+        this._closeDetailOverlay();
+        const overlay = document.createElement('div');
+        overlay.className = 'detail-overlay';
+        overlay.innerHTML = `
+            <div class="detail-card">
+                <button class="detail-close">✕</button>
+                <h2>[${c.tag}] ${c.name}</h2>
+                <p style="color:#aaa;font-size:13px;margin-top:-6px;">Leader: ${c.leaderName} • ${c.memberCount} members</p>
+                <div class="detail-stats-grid">
+                    <div class="detail-stat gold">
+                        <div class="detail-stat-val">${(c.totalScore || 0).toLocaleString()}</div>
+                        <div class="detail-stat-label">Clan Score</div>
+                    </div>
+                    <div class="detail-stat red">
+                        <div class="detail-stat-val">${(c.totalKills || 0).toLocaleString()}</div>
+                        <div class="detail-stat-label">Total Kills</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) this._closeDetailOverlay(); });
+        overlay.querySelector('.detail-close').addEventListener('click', () => this._closeDetailOverlay());
+    }
+
+    _closeDetailOverlay() {
+        document.querySelectorAll('.detail-overlay').forEach(el => el.remove());
     }
 
     // ========================================================

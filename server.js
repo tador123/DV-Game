@@ -400,6 +400,7 @@ app.get('/api/leaderboard', (req, res) => {
             bestKills: u.bestKills,
             bestLevel: u.bestLevel,
             totalGamesPlayed: u.totalGamesPlayed,
+            totalKills: u.totalKills,
             clanTag: u.clanId && db.clans[u.clanId] ? db.clans[u.clanId].tag : null,
             clanId: u.clanId || null,
         }))
