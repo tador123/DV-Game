@@ -123,6 +123,19 @@
         #login-form .input { text-align: center; font-size: 16px; padding: 10px 14px; }
         #login-error { color: #ff4444; font-size: 12px; min-height: 16px; text-align: center; }
 
+        /* Auth tabs */
+        .auth-tabs { display: flex; gap: 0; margin-bottom: 12px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 340px; }
+        .auth-tab { flex: 1; padding: 10px 4px; background: rgba(255,255,255,0.03); color: #888; border: none; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
+        .auth-tab.active { background: rgba(255,50,50,0.15); color: #ff6666; }
+        .auth-tab:hover { background: rgba(255,255,255,0.08); }
+        .auth-panel { display: none; width: 90%; max-width: 340px; }
+        .auth-panel.active { display: block; }
+        .auth-panel .input { text-align: center; font-size: 16px; padding: 10px 14px; margin-bottom: 8px; }
+        .auth-panel select.input { text-align: left; font-size: 13px; color: #aaa; appearance: auto; -webkit-appearance: auto; }
+        .auth-panel select.input option { background: #1a1a2e; color: #ccc; }
+        .auth-error { color: #ff4444; font-size: 12px; min-height: 16px; text-align: center; }
+        .auth-success { color: #44cc44; font-size: 12px; min-height: 16px; text-align: center; }
+
         /* ========== LOBBY SCREEN ========== */
         #lobby-screen { background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a12 100%); z-index: 250; padding: 16px; gap: 0; }
         #lobby-welcome { color: #aaa; font-size: clamp(11px, 2.5vw, 14px); margin-bottom: 2px; text-align: center; }
@@ -643,11 +656,57 @@
     <div id="login-screen" class="overlay active">
         <div id="login-title">🧛 DARK SURVIVORS</div>
         <div id="login-tagline">Survive the endless horde. Grow stronger.</div>
-        <div id="login-form">
-            <input type="text" id="login-name" class="input" placeholder="Enter your name..." maxlength="20" autocomplete="off">
-            <div id="login-error"></div>
-            <button id="login-btn" class="btn btn-red" style="width:100%">⚔ ENTER AS GUEST</button>
+
+        <!-- Auth Tab Bar -->
+        <div class="auth-tabs">
+            <button class="auth-tab active" data-tab="login">Login</button>
+            <button class="auth-tab" data-tab="register">Register</button>
+            <button class="auth-tab" data-tab="reset">Reset Password</button>
         </div>
+
+        <!-- LOGIN TAB -->
+        <div id="auth-login" class="auth-panel active">
+            <div id="login-form">
+                <input type="text" id="login-name" class="input" placeholder="Username" maxlength="20" autocomplete="username">
+                <input type="password" id="login-password" class="input" placeholder="Password" autocomplete="current-password">
+                <div id="login-error" class="auth-error"></div>
+                <button id="login-btn" class="btn btn-red" style="width:100%">⚔ LOGIN</button>
+            </div>
+        </div>
+
+        <!-- REGISTER TAB -->
+        <div id="auth-register" class="auth-panel">
+            <div id="register-form">
+                <input type="text" id="reg-name" class="input" placeholder="Choose a username" maxlength="20" autocomplete="off">
+                <input type="password" id="reg-password" class="input" placeholder="Password (min 4 chars)" autocomplete="new-password">
+                <input type="password" id="reg-password2" class="input" placeholder="Confirm password" autocomplete="new-password">
+                <select id="reg-security-q" class="input">
+                    <option value="">— Select a security question —</option>
+                    <option value="pet">What was your first pet's name?</option>
+                    <option value="city">What city were you born in?</option>
+                    <option value="school">What was the name of your first school?</option>
+                    <option value="food">What is your favourite food?</option>
+                    <option value="game">What is your favourite game?</option>
+                </select>
+                <input type="text" id="reg-security-a" class="input" placeholder="Security answer" autocomplete="off">
+                <div id="register-error" class="auth-error"></div>
+                <button id="register-btn" class="btn btn-green" style="width:100%">✦ CREATE ACCOUNT</button>
+            </div>
+        </div>
+
+        <!-- RESET PASSWORD TAB -->
+        <div id="auth-reset" class="auth-panel">
+            <div id="reset-form">
+                <input type="text" id="reset-name" class="input" placeholder="Your username" maxlength="20" autocomplete="off">
+                <button id="reset-question-btn" class="btn btn-blue btn-sm" style="width:100%">Get Security Question</button>
+                <div id="reset-question-display" class="hidden" style="color:#ffd700;font-size:13px;text-align:center;padding:8px;background:rgba(255,215,0,0.08);border-radius:8px;margin-top:4px;"></div>
+                <input type="text" id="reset-answer" class="input hidden" placeholder="Security answer" autocomplete="off">
+                <input type="password" id="reset-new-pw" class="input hidden" placeholder="New password (min 4 chars)" autocomplete="new-password">
+                <div id="reset-error" class="auth-error"></div>
+                <button id="reset-btn" class="btn btn-gold hidden" style="width:100%">🔑 RESET PASSWORD</button>
+            </div>
+        </div>
+
         <div style="margin-top: 10px; color: #444; font-size: 11px; text-align:center;">WASD / Arrows to move · Touch joystick on mobile</div>
         <div id="login-install-banner" class="install-banner">
             <strong>📲 Play fullscreen without the address bar!</strong><br>
@@ -668,7 +727,7 @@
             <button id="clan-btn" class="btn btn-gold" style="width:100%">⚔ CLAN</button>
             <button id="leaderboard-btn" class="btn btn-blue" style="width:100%">🏆 LEADERBOARD</button>
             <button id="install-btn" class="install-btn">📲 INSTALL APP (Fullscreen)</button>
-            <button id="logout-btn" class="btn btn-outline btn-sm" style="margin-top:8px">Change Name</button>
+            <button id="logout-btn" class="btn btn-outline btn-sm" style="margin-top:8px">🚪 Logout</button>
             <button id="exit-btn" class="btn btn-outline btn-sm" style="margin-top:2px;color:#ff4444;border-color:rgba(255,68,68,0.3);">✕ EXIT GAME</button>
         </div>
     </div>
@@ -719,8 +778,8 @@
         <div class="ios-arrow"></div>
     </div>
 
-    <script src="social.js?v=9"></script>
-    <script src="game.js?v=9"></script>
+    <script src="social.js?v=10"></script>
+    <script src="game.js?v=10"></script>
 
     <!-- PWA: Service Worker + Install Prompt -->
     <script>

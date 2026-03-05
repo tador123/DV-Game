@@ -1,6 +1,6 @@
 // ============================================================
 // 🧛 DARK SURVIVORS — Social / Clan System
-// Guest login, clans, invites, rankings
+// Account login, clans, invites, rankings
 // ============================================================
 
 class Social {
@@ -9,7 +9,10 @@ class Social {
         this.user = null;
         this.clan = null;
 
+        this.bindAuthTabs();
         this.bindLoginEvents();
+        this.bindRegisterEvents();
+        this.bindResetEvents();
         this.bindLobbyEvents();
 
         // Auto-login if we have a token
@@ -42,29 +45,52 @@ class Social {
     }
 
     // ========================================================
+    // AUTH TAB SWITCHING
+    // ========================================================
+    bindAuthTabs() {
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Switch active tab
+                document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                // Switch active panel
+                document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+                const target = tab.dataset.tab; // login | register | reset
+                document.getElementById('auth-' + target).classList.add('active');
+                // Clear errors
+                document.querySelectorAll('.auth-error').forEach(e => e.textContent = '');
+            });
+        });
+    }
+
+    // ========================================================
     // LOGIN
     // ========================================================
     bindLoginEvents() {
         document.getElementById('login-btn').addEventListener('click', () => this.login());
-        document.getElementById('login-name').addEventListener('keydown', (e) => {
+        document.getElementById('login-password').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') this.login();
         });
     }
 
     async login() {
-        const nameInput = document.getElementById('login-name');
-        const name = nameInput.value.trim();
+        const username = document.getElementById('login-name').value.trim();
+        const password = document.getElementById('login-password').value;
         const errEl = document.getElementById('login-error');
 
-        if (!name || name.length < 2) {
-            errEl.textContent = 'Name must be at least 2 characters';
+        if (!username || username.length < 2) {
+            errEl.textContent = 'Username must be at least 2 characters';
+            return;
+        }
+        if (!password) {
+            errEl.textContent = 'Enter your password';
             return;
         }
 
         errEl.textContent = '';
 
         try {
-            const data = await this.api('POST', '/api/login', { name, token: this.token });
+            const data = await this.api('POST', '/api/login', { username, password });
             this.token = data.token;
             this.user = data.user;
             localStorage.setItem('ds_token', this.token);
@@ -76,6 +102,141 @@ class Social {
         }
     }
 
+    // ========================================================
+    // REGISTER
+    // ========================================================
+    bindRegisterEvents() {
+        document.getElementById('register-btn').addEventListener('click', () => this.register());
+        document.getElementById('reg-security-a').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') this.register();
+        });
+    }
+
+    async register() {
+        const username = document.getElementById('reg-name').value.trim();
+        const password = document.getElementById('reg-password').value;
+        const password2 = document.getElementById('reg-password2').value;
+        const securityQuestion = document.getElementById('reg-security-q').value;
+        const securityAnswer = document.getElementById('reg-security-a').value.trim();
+        const errEl = document.getElementById('register-error');
+
+        if (!username || username.length < 2) {
+            errEl.textContent = 'Username must be at least 2 characters';
+            return;
+        }
+        if (!password || password.length < 4) {
+            errEl.textContent = 'Password must be at least 4 characters';
+            return;
+        }
+        if (password !== password2) {
+            errEl.textContent = 'Passwords do not match';
+            return;
+        }
+        if (!securityQuestion) {
+            errEl.textContent = 'Please select a security question';
+            return;
+        }
+        if (!securityAnswer) {
+            errEl.textContent = 'Please enter a security answer';
+            return;
+        }
+
+        errEl.textContent = '';
+
+        try {
+            const data = await this.api('POST', '/api/register', { username, password, securityQuestion, securityAnswer });
+            this.token = data.token;
+            this.user = data.user;
+            localStorage.setItem('ds_token', this.token);
+
+            this.toast('Account created! Welcome, ' + this.user.name);
+            document.getElementById('login-screen').classList.remove('active');
+            this.showLobby();
+        } catch (e) {
+            errEl.textContent = e.message;
+        }
+    }
+
+    // ========================================================
+    // RESET PASSWORD
+    // ========================================================
+    bindResetEvents() {
+        document.getElementById('reset-question-btn').addEventListener('click', () => this.getSecurityQuestion());
+        document.getElementById('reset-btn').addEventListener('click', () => this.resetPassword());
+    }
+
+    async getSecurityQuestion() {
+        const username = document.getElementById('reset-name').value.trim();
+        const errEl = document.getElementById('reset-error');
+
+        if (!username) {
+            errEl.textContent = 'Enter your username';
+            return;
+        }
+
+        errEl.textContent = '';
+
+        try {
+            const data = await this.api('POST', '/api/reset/question', { username });
+            // Show the question and reveal answer/password fields
+            const qDisplay = document.getElementById('reset-question-display');
+            qDisplay.textContent = '🔒 ' + this.getQuestionText(data.securityQuestion);
+            qDisplay.classList.remove('hidden');
+            document.getElementById('reset-answer').classList.remove('hidden');
+            document.getElementById('reset-new-pw').classList.remove('hidden');
+            document.getElementById('reset-btn').classList.remove('hidden');
+        } catch (e) {
+            errEl.textContent = e.message;
+        }
+    }
+
+    getQuestionText(key) {
+        const questions = {
+            'pet': "What was your first pet's name?",
+            'city': 'What city were you born in?',
+            'school': 'What was the name of your first school?',
+            'food': 'What is your favourite food?',
+            'game': 'What is your favourite game?',
+        };
+        return questions[key] || key;
+    }
+
+    async resetPassword() {
+        const username = document.getElementById('reset-name').value.trim();
+        const securityAnswer = document.getElementById('reset-answer').value.trim();
+        const newPassword = document.getElementById('reset-new-pw').value;
+        const errEl = document.getElementById('reset-error');
+
+        if (!securityAnswer) {
+            errEl.textContent = 'Enter your security answer';
+            return;
+        }
+        if (!newPassword || newPassword.length < 4) {
+            errEl.textContent = 'New password must be at least 4 characters';
+            return;
+        }
+
+        errEl.textContent = '';
+
+        try {
+            await this.api('POST', '/api/reset/password', { username, securityAnswer, newPassword });
+            errEl.style.color = '#44cc44';
+            errEl.textContent = '✓ Password reset! You can now login.';
+            // After 2s switch to login tab
+            setTimeout(() => {
+                errEl.style.color = '';
+                errEl.textContent = '';
+                document.querySelector('.auth-tab[data-tab="login"]').click();
+                document.getElementById('login-name').value = username;
+            }, 2000);
+        } catch (e) {
+            errEl.textContent = e.message;
+        }
+    }
+
+    // ========================================================
+    // AUTO-LOGIN (token in localStorage)
+    // ========================================================
     async tryAutoLogin() {
         try {
             const data = await this.api('GET', `/api/user/${this.token}`);
@@ -87,6 +248,23 @@ class Social {
             this.token = null;
             localStorage.removeItem('ds_token');
         }
+    }
+
+    // ========================================================
+    // LOGOUT
+    // ========================================================
+    logout() {
+        this.token = null;
+        localStorage.removeItem('ds_token');
+        this.user = null;
+        this.clan = null;
+        document.getElementById('lobby-screen').classList.remove('active');
+        document.getElementById('login-screen').classList.add('active');
+        // Clear login fields
+        document.getElementById('login-name').value = '';
+        document.getElementById('login-password').value = '';
+        // Reset to login tab
+        document.querySelector('.auth-tab[data-tab="login"]').click();
     }
 
     // ========================================================
@@ -173,12 +351,6 @@ class Social {
             const data = await this.api('GET', `/api/user/${this.token}`);
             this.user = data.user;
         } catch (e) {}
-    }
-
-    logout() {
-        document.getElementById('lobby-screen').classList.remove('active');
-        document.getElementById('login-screen').classList.add('active');
-        document.getElementById('login-name').value = this.user?.name || '';
     }
 
     exitGame() {

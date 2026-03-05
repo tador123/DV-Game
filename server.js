@@ -1,10 +1,11 @@
 // ============================================================
 // 🧛 DARK SURVIVORS — Backend Server
-// Express server for guest login, clans, rankings
+// Express server with account login, clans, rankings
 // ============================================================
 const express = require('express');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcryptjs');
 const fs = require('fs');
 
 const app = express();
@@ -45,46 +46,43 @@ let db = loadData();
 setInterval(() => saveData(db), 30000);
 
 // ============================================================
-// AUTH — Guest Login
+// AUTH — Register / Login / Reset Password
 // ============================================================
-app.post('/api/login', (req, res) => {
-    const { name } = req.body;
-    if (!name || name.trim().length < 2 || name.trim().length > 20) {
-        return res.status(400).json({ error: 'Name must be 2-20 characters' });
+
+// Register new account
+app.post('/api/register', async (req, res) => {
+    const { username, password, securityQuestion, securityAnswer } = req.body;
+
+    if (!username || username.trim().length < 2 || username.trim().length > 20) {
+        return res.status(400).json({ error: 'Username must be 2-20 characters' });
+    }
+    if (!password || password.length < 4) {
+        return res.status(400).json({ error: 'Password must be at least 4 characters' });
+    }
+    if (!securityQuestion || !securityAnswer || securityAnswer.trim().length < 1) {
+        return res.status(400).json({ error: 'Security question and answer are required' });
     }
 
-    const cleanName = name.trim();
+    const cleanName = username.trim();
 
-    // Check if returning user (by token in body)
-    if (req.body.token && db.users[req.body.token]) {
-        const user = db.users[req.body.token];
-        // If name is changing, check uniqueness
-        if (user.name.toLowerCase() !== cleanName.toLowerCase()) {
-            const nameTaken = Object.values(db.users).some(
-                u => u.id !== user.id && u.name.toLowerCase() === cleanName.toLowerCase()
-            );
-            if (nameTaken) {
-                return res.status(409).json({ error: 'Name already taken. Choose a different name.' });
-            }
-        }
-        user.name = cleanName;
-        user.lastLogin = Date.now();
-        saveData(db);
-        return res.json({ token: req.body.token, user });
-    }
-
-    // New guest user — enforce unique name
+    // Check unique username (case-insensitive)
     const nameTaken = Object.values(db.users).some(
         u => u.name.toLowerCase() === cleanName.toLowerCase()
     );
     if (nameTaken) {
-        return res.status(409).json({ error: 'Name already taken. Choose a different name.' });
+        return res.status(409).json({ error: 'Username already taken' });
     }
 
     const token = uuidv4();
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedAnswer = await bcrypt.hash(securityAnswer.trim().toLowerCase(), 10);
+
     const user = {
         id: token,
         name: cleanName,
+        passwordHash: hashedPassword,
+        securityQuestion: securityQuestion.trim(),
+        securityAnswerHash: hashedAnswer,
         createdAt: Date.now(),
         lastLogin: Date.now(),
         clanId: null,
@@ -99,15 +97,91 @@ app.post('/api/login', (req, res) => {
 
     db.users[token] = user;
     saveData(db);
-    res.json({ token, user });
+    res.json({ token, user: sanitizeUser(user) });
 });
 
-// Get user profile
+// Login with username + password
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password are required' });
+    }
+
+    const cleanName = username.trim();
+    const userEntry = Object.values(db.users).find(
+        u => u.name.toLowerCase() === cleanName.toLowerCase()
+    );
+
+    if (!userEntry) {
+        return res.status(401).json({ error: 'Invalid username or password' });
+    }
+
+    const valid = await bcrypt.compare(password, userEntry.passwordHash);
+    if (!valid) {
+        return res.status(401).json({ error: 'Invalid username or password' });
+    }
+
+    userEntry.lastLogin = Date.now();
+    saveData(db);
+    res.json({ token: userEntry.id, user: sanitizeUser(userEntry) });
+});
+
+// Get security question for password reset
+app.post('/api/reset/question', (req, res) => {
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ error: 'Username is required' });
+
+    const userEntry = Object.values(db.users).find(
+        u => u.name.toLowerCase() === username.trim().toLowerCase()
+    );
+    if (!userEntry) {
+        return res.status(404).json({ error: 'Username not found' });
+    }
+
+    res.json({ securityQuestion: userEntry.securityQuestion });
+});
+
+// Reset password with security answer
+app.post('/api/reset/password', async (req, res) => {
+    const { username, securityAnswer, newPassword } = req.body;
+
+    if (!username || !securityAnswer || !newPassword) {
+        return res.status(400).json({ error: 'All fields are required' });
+    }
+    if (newPassword.length < 4) {
+        return res.status(400).json({ error: 'Password must be at least 4 characters' });
+    }
+
+    const userEntry = Object.values(db.users).find(
+        u => u.name.toLowerCase() === username.trim().toLowerCase()
+    );
+    if (!userEntry) {
+        return res.status(404).json({ error: 'Username not found' });
+    }
+
+    const answerValid = await bcrypt.compare(securityAnswer.trim().toLowerCase(), userEntry.securityAnswerHash);
+    if (!answerValid) {
+        return res.status(401).json({ error: 'Security answer is incorrect' });
+    }
+
+    userEntry.passwordHash = await bcrypt.hash(newPassword, 10);
+    saveData(db);
+    res.json({ success: true, message: 'Password reset successfully. You can now login.' });
+});
+
+// Get user profile (by token)
 app.get('/api/user/:token', (req, res) => {
     const user = db.users[req.params.token];
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ user });
+    res.json({ user: sanitizeUser(user) });
 });
+
+// Helper: strip sensitive fields before sending to client
+function sanitizeUser(u) {
+    const { passwordHash, securityAnswerHash, securityQuestion, ...safe } = u;
+    return safe;
+}
 
 // ============================================================
 // SCORE SUBMISSION
@@ -131,7 +205,7 @@ app.post('/api/score', (req, res) => {
     }
 
     saveData(db);
-    res.json({ score, bestScore: user.bestScore, user });
+    res.json({ score, bestScore: user.bestScore, user: sanitizeUser(user) });
 });
 
 // ============================================================
