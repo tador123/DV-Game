@@ -15,9 +15,26 @@ class Social {
         this.bindResetEvents();
         this.bindLobbyEvents();
 
+        // Lock orientation to portrait on login/register (PWA / supported browsers)
+        this._lockPortrait();
+
         // Auto-login if we have a token
         if (this.token) {
             this.tryAutoLogin();
+        }
+    }
+
+    // ========================================================
+    // ORIENTATION LOCK HELPERS
+    // ========================================================
+    _lockPortrait() {
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('portrait').catch(() => {});
+        }
+    }
+    _unlockOrientation() {
+        if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
         }
     }
 
@@ -97,6 +114,7 @@ class Social {
 
             document.getElementById('login-screen').classList.remove('active');
             document.body.classList.remove('auth-active');
+            this._unlockOrientation();
             this.showLobby();
         } catch (e) {
             errEl.textContent = e.message;
@@ -153,6 +171,7 @@ class Social {
             this.toast('Account created! Welcome, ' + this.user.name);
             document.getElementById('login-screen').classList.remove('active');
             document.body.classList.remove('auth-active');
+            this._unlockOrientation();
             this.showLobby();
         } catch (e) {
             errEl.textContent = e.message;
@@ -245,6 +264,7 @@ class Social {
             this.user = data.user;
             document.getElementById('login-screen').classList.remove('active');
             document.body.classList.remove('auth-active');
+            this._unlockOrientation();
             this.showLobby();
         } catch (e) {
             // Token expired or invalid
@@ -264,6 +284,7 @@ class Social {
         document.getElementById('lobby-screen').classList.remove('active');
         document.getElementById('login-screen').classList.add('active');
         document.body.classList.add('auth-active');
+        this._lockPortrait();
         // Clear login fields
         document.getElementById('login-name').value = '';
         document.getElementById('login-password').value = '';

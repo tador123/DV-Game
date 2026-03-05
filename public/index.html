@@ -722,42 +722,56 @@
 
         /* Joystick is now canvas-drawn — no DOM elements needed */
 
-        /* ========== ROTATE DEVICE OVERLAY (login/register in landscape) ========== */
-        #rotate-device-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 999;
-            background: radial-gradient(ellipse at center, #0d1117 0%, #060a10 100%);
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            gap: 16px;
-            text-align: center;
-            padding: 20px;
-        }
-        #rotate-device-overlay .rotate-icon {
-            font-size: 56px;
-            animation: floatUp 2s ease-in-out infinite;
-            filter: drop-shadow(0 0 12px rgba(0,255,200,0.4));
-        }
-        #rotate-device-overlay .rotate-text {
-            color: #00ffc8;
-            font-size: 18px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-shadow: 0 0 12px rgba(0,255,200,0.4);
-        }
-        #rotate-device-overlay .rotate-sub {
-            color: rgba(0,255,200,0.3);
-            font-size: 12px;
-            letter-spacing: 1px;
-        }
-        /* Show on mobile landscape when login screen is active */
-        @media (max-height: 500px) and (orientation: landscape) {
-            body.auth-active #rotate-device-overlay { display: flex; }
-            body.auth-active #login-screen { display: none !important; }
+        /* ========== FORCE PORTRAIT LAYOUT on login in landscape ========== */
+        @media (max-width: 900px) and (orientation: landscape) {
+            body.auth-active #login-screen {
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                padding: 10px 0;
+            }
+            body.auth-active #login-screen > * {
+                max-width: min(320px, 55vh);
+                width: 100%;
+            }
+            body.auth-active #login-title {
+                font-size: clamp(18px, 5vh, 28px);
+                margin-bottom: 0;
+                letter-spacing: 2px;
+            }
+            body.auth-active #login-tagline {
+                font-size: 9px;
+                margin-bottom: 6px;
+            }
+            body.auth-active .auth-tabs {
+                gap: 4px;
+                margin-bottom: 6px;
+            }
+            body.auth-active .auth-tab {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+            body.auth-active #login-form {
+                gap: 5px;
+                max-width: min(320px, 55vh);
+            }
+            body.auth-active #login-form .input {
+                padding: 7px 10px;
+                font-size: 13px;
+            }
+            body.auth-active #login-form .btn {
+                padding: 8px 18px;
+                font-size: 12px;
+            }
+            body.auth-active #login-form select {
+                padding: 7px 10px;
+                font-size: 12px;
+            }
+            body.auth-active .auth-error {
+                font-size: 11px;
+            }
         }
 
         /* ========== MOBILE RESPONSIVE ========== */
@@ -994,13 +1008,6 @@
         <div id="upgrade-options"></div>
     </div>
 
-    <!-- ========== ROTATE DEVICE OVERLAY ========== -->
-    <div id="rotate-device-overlay">
-        <div class="rotate-icon">📱</div>
-        <div class="rotate-text">Rotate Your Device</div>
-        <div class="rotate-sub">Please switch to portrait mode to login</div>
-    </div>
-
     <!-- ========== LOGIN SCREEN ========== -->
     <div id="login-screen" class="overlay active">
         <div id="login-title">⟁ DARK SURVIVORS</div>
@@ -1127,8 +1134,8 @@
         <div class="ios-arrow"></div>
     </div>
 
-    <script src="social.js?v=13"></script>
-    <script src="game.js?v=13"></script>
+    <script src="social.js?v=14"></script>
+    <script src="game.js?v=14"></script>
 
     <!-- PWA: Service Worker + Install Prompt -->
     <script>
