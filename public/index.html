@@ -565,9 +565,45 @@
         }
         .lb-row:nth-child(-n+3) { background: rgba(255,215,0,0.06); }
         .lb-rank { color: #ffd700; font-weight: 900; font-size: 14px; width: 28px; text-align: center; }
-        .lb-name { color: #fff; font-size: 13px; flex: 1; }
+        .lb-flag { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
+        .lb-name { color: #fff; font-size: 13px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .lb-clan { color: #888; font-size: 11px; }
-        .lb-score { color: #aaa; font-weight: 600; font-size: 13px; }
+        .lb-score { color: #aaa; font-weight: 600; font-size: 13px; flex-shrink: 0; }
+        .lb-invite-btn {
+            background: rgba(0,200,80,0.15); border: 1px solid rgba(0,200,80,0.3);
+            color: #00e676; font-size: 10px; padding: 3px 8px; border-radius: 6px;
+            cursor: pointer; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+            transition: all 0.2s ease; font-family: inherit;
+        }
+        .lb-invite-btn:hover { background: rgba(0,200,80,0.3); }
+        .lb-invite-btn:disabled { opacity: 0.4; cursor: default; }
+        .lb-invite-btn.sent { background: rgba(100,100,100,0.15); border-color: rgba(100,100,100,0.3); color: #888; }
+
+        /* Role badges */
+        .role-badge {
+            font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px;
+            text-transform: uppercase; letter-spacing: 0.5px; margin-left: 6px;
+        }
+        .role-admin { background: rgba(255,215,0,0.15); color: #ffd700; border: 1px solid rgba(255,215,0,0.3); }
+        .role-manager { background: rgba(0,191,255,0.12); color: #00bfff; border: 1px solid rgba(0,191,255,0.25); }
+        .role-action-btn {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+            color: #ccc; font-size: 10px; padding: 3px 8px; border-radius: 5px;
+            cursor: pointer; font-weight: 600; font-family: inherit; transition: all 0.2s;
+        }
+        .role-action-btn:hover { background: rgba(255,255,255,0.12); }
+
+        /* Invite notifications */
+        .invite-notif-area { width: 90%; max-width: 360px; margin-top: 8px; }
+        .invite-notif {
+            display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+            background: rgba(0,200,80,0.06); border: 1px solid rgba(0,200,80,0.2);
+            border-radius: 10px; margin-bottom: 6px;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        .invite-notif-text { flex: 1; font-size: 12px; color: #ccc; }
+        .invite-notif-text strong { color: #00e676; }
+        .invite-notif .btn-sm { padding: 4px 10px; font-size: 10px; }
 
         /* ========== HUD ========== */
         #hud { position: fixed; top: 0; left: 0; right: 0; pointer-events: none; z-index: 10; padding-top: env(safe-area-inset-top, 0px); }
@@ -1045,6 +1081,60 @@
                     <option value="game">What is your favourite game?</option>
                 </select>
                 <input type="text" id="reg-security-a" class="input" placeholder="Security answer" autocomplete="off">
+                <select id="reg-country" class="input">
+                    <option value="">— Select your country (optional) —</option>
+                    <option value="US">🇺🇸 United States</option>
+                    <option value="IN">🇮🇳 India</option>
+                    <option value="GB">🇬🇧 United Kingdom</option>
+                    <option value="BR">🇧🇷 Brazil</option>
+                    <option value="DE">🇩🇪 Germany</option>
+                    <option value="FR">🇫🇷 France</option>
+                    <option value="JP">🇯🇵 Japan</option>
+                    <option value="KR">🇰🇷 South Korea</option>
+                    <option value="CA">🇨🇦 Canada</option>
+                    <option value="AU">🇦🇺 Australia</option>
+                    <option value="MX">🇲🇽 Mexico</option>
+                    <option value="RU">🇷🇺 Russia</option>
+                    <option value="IT">🇮🇹 Italy</option>
+                    <option value="ES">🇪🇸 Spain</option>
+                    <option value="TR">🇹🇷 Turkey</option>
+                    <option value="ID">🇮🇩 Indonesia</option>
+                    <option value="PH">🇵🇭 Philippines</option>
+                    <option value="PL">🇵🇱 Poland</option>
+                    <option value="NL">🇳🇱 Netherlands</option>
+                    <option value="SA">🇸🇦 Saudi Arabia</option>
+                    <option value="TH">🇹🇭 Thailand</option>
+                    <option value="AR">🇦🇷 Argentina</option>
+                    <option value="SE">🇸🇪 Sweden</option>
+                    <option value="PK">🇵🇰 Pakistan</option>
+                    <option value="NG">🇳🇬 Nigeria</option>
+                    <option value="EG">🇪🇬 Egypt</option>
+                    <option value="VN">🇻🇳 Vietnam</option>
+                    <option value="MY">🇲🇾 Malaysia</option>
+                    <option value="SG">🇸🇬 Singapore</option>
+                    <option value="AE">🇦🇪 UAE</option>
+                    <option value="BD">🇧🇩 Bangladesh</option>
+                    <option value="CO">🇨🇴 Colombia</option>
+                    <option value="CL">🇨🇱 Chile</option>
+                    <option value="ZA">🇿🇦 South Africa</option>
+                    <option value="PT">🇵🇹 Portugal</option>
+                    <option value="RO">🇷🇴 Romania</option>
+                    <option value="CZ">🇨🇿 Czech Republic</option>
+                    <option value="NO">🇳🇴 Norway</option>
+                    <option value="FI">🇫🇮 Finland</option>
+                    <option value="DK">🇩🇰 Denmark</option>
+                    <option value="UA">🇺🇦 Ukraine</option>
+                    <option value="CN">🇨🇳 China</option>
+                    <option value="TW">🇹🇼 Taiwan</option>
+                    <option value="PE">🇵🇪 Peru</option>
+                    <option value="NZ">🇳🇿 New Zealand</option>
+                    <option value="IE">🇮🇪 Ireland</option>
+                    <option value="IL">🇮🇱 Israel</option>
+                    <option value="AT">🇦🇹 Austria</option>
+                    <option value="CH">🇨🇭 Switzerland</option>
+                    <option value="BE">🇧🇪 Belgium</option>
+                    <option value="GR">🇬🇷 Greece</option>
+                </select>
                 <div id="register-error" class="auth-error"></div>
                 <button id="register-btn" class="btn btn-green" style="width:100%">◈ CREATE ACCOUNT</button>
             </div>
@@ -1077,6 +1167,8 @@
         <div id="lobby-clan-badge" class="hidden"></div>
 
         <div class="stats-grid" id="lobby-stats"></div>
+
+        <div id="invite-notif-area" class="invite-notif-area"></div>
 
         <div class="lobby-actions">
             <button id="play-btn" class="btn btn-red" style="width:100%">▶ PLAY</button>
@@ -1134,8 +1226,8 @@
         <div class="ios-arrow"></div>
     </div>
 
-    <script src="social.js?v=17"></script>
-    <script src="game.js?v=17"></script>
+    <script src="social.js?v=18"></script>
+    <script src="game.js?v=18"></script>
 
     <!-- PWA: Service Worker + Install Prompt -->
     <script>

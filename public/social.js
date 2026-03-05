@@ -38,6 +38,12 @@ class Social {
         }
     }
 
+    // Country code → flag emoji (lightweight, no external images)
+    _flag(code) {
+        if (!code || code.length !== 2) return '';
+        return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+    }
+
     // ========================================================
     // API HELPERS
     // ========================================================
@@ -137,6 +143,7 @@ class Social {
         const password2 = document.getElementById('reg-password2').value;
         const securityQuestion = document.getElementById('reg-security-q').value;
         const securityAnswer = document.getElementById('reg-security-a').value.trim();
+        const country = document.getElementById('reg-country').value;
         const errEl = document.getElementById('register-error');
 
         if (!username || username.length < 2) {
@@ -163,7 +170,7 @@ class Social {
         errEl.textContent = '';
 
         try {
-            const data = await this.api('POST', '/api/register', { username, password, securityQuestion, securityAnswer });
+            const data = await this.api('POST', '/api/register', { username, password, securityQuestion, securityAnswer, country: country || null });
             this.token = data.token;
             this.user = data.user;
             localStorage.setItem('ds_token', this.token);
@@ -335,6 +342,9 @@ class Social {
 
         // Clan badge
         this.refreshClanBadge();
+
+        // Load pending clan invites
+        this.loadPendingInvites();
     }
 
     async refreshClanBadge() {
@@ -466,7 +476,9 @@ class Social {
             this.clan = data.clan;
             const members = data.members;
 
-            const isLeader = members.some(m => m.id === this.token && m.isLeader);
+            const myMember = members.find(m => m.id === this.token);
+            const myRole = myMember ? myMember.role : 'member';
+            const isAdmin = myRole === 'admin';
 
             panel.innerHTML = `
                 <h2>[${this.clan.tag}] ${this.clan.name}</h2>
@@ -491,13 +503,27 @@ class Social {
 
                 <h3>👥 Members (Rank by Score)</h3>
                 <div id="members-list">
-                    ${members.map(m => `
+                    ${members.map(m => {
+                        const roleBadge = m.role === 'admin' ? '<span class="role-badge role-admin">Admin</span>'
+                            : m.role === 'manager' ? '<span class="role-badge role-manager">Manager</span>' : '';
+                        const isMe = m.id === this.token;
+                        // Admin can promote/demote others (not themselves)
+                        let actions = '';
+                        if (isAdmin && !isMe && m.role !== 'admin') {
+                            if (m.role === 'member') {
+                                actions = `<button class="role-action-btn" data-action="promote" data-id="${m.id}">⬆ Manager</button>`;
+                            } else if (m.role === 'manager') {
+                                actions = `<button class="role-action-btn" data-action="demote" data-id="${m.id}">⬇ Member</button>`;
+                            }
+                        }
+                        return `
                         <div class="member-row">
                             <span class="member-rank">${m.rank <= 3 ? ['🥇','🥈','🥉'][m.rank-1] : '#'+m.rank}</span>
-                            <span class="member-name">${m.name}${m.isLeader ? '<span class="leader-badge">👑</span>' : ''}${m.id === this.token ? ' (You)' : ''}</span>
+                            <span class="member-name">${m.name}${roleBadge}${isMe ? ' <span style="color:#555;font-size:11px">(You)</span>' : ''}</span>
+                            ${actions}
                             <span class="member-score">${m.bestScore.toLocaleString()}</span>
-                        </div>
-                    `).join('')}
+                        </div>`;
+                    }).join('')}
                 </div>
 
                 <div style="display:flex;gap:8px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
@@ -516,6 +542,20 @@ class Social {
             });
             document.getElementById('leave-clan-btn').addEventListener('click', () => this.leaveClan());
             document.getElementById('close-clan-btn').addEventListener('click', () => this.closeClanScreen());
+
+            // Bind role action buttons
+            panel.querySelectorAll('.role-action-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const targetId = btn.dataset.id;
+                    const action = btn.dataset.action;
+                    const newRole = action === 'promote' ? 'manager' : 'member';
+                    try {
+                        await this.api('POST', '/api/clan/set-role', { token: this.token, targetId, role: newRole });
+                        this.toast(action === 'promote' ? 'Promoted to Manager!' : 'Demoted to Member');
+                        await this.showClanDetails(panel);
+                    } catch (e) { this.toast(e.message); }
+                });
+            });
         } catch (e) {
             panel.innerHTML = `<p style="color:#ff4444">${e.message}</p><button class="btn btn-outline btn-sm" onclick="social.closeClanScreen()">Close</button>`;
         }
@@ -580,6 +620,19 @@ class Social {
         document.getElementById('lobby-screen').classList.remove('active');
         screen.classList.add('active');
 
+        // Determine if current user is a clan admin/manager (can invite)
+        let canInvite = false;
+        let myClanId = null;
+        if (this.user.clanId && this.clan) {
+            myClanId = this.user.clanId;
+            // We need to check our role — fetch members to confirm
+            try {
+                const mData = await this.api('GET', `/api/clan/${myClanId}/members`);
+                const me = mData.members.find(m => m.id === this.token);
+                canInvite = me && (me.role === 'admin' || me.role === 'manager');
+            } catch (e) {}
+        }
+
         // Load player leaderboard
         try {
             const pData = await this.api('GET', '/api/leaderboard');
@@ -587,13 +640,37 @@ class Social {
             if (pData.players.length === 0) {
                 container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">No players yet. Be the first!</p>';
             } else {
-                container.innerHTML = pData.players.map(p => `
+                container.innerHTML = pData.players.map(p => {
+                    const flag = this._flag(p.country);
+                    const isMe = p.id === this.token;
+                    const alreadyInClan = !!p.clanId;
+                    // Show invite button if: I can invite, player is not me, player has no clan
+                    const showInvite = canInvite && !isMe && !alreadyInClan;
+                    return `
                     <div class="lb-row">
                         <span class="lb-rank">${p.rank <= 3 ? ['🥇','🥈','🥉'][p.rank-1] : '#'+p.rank}</span>
+                        ${flag ? `<span class="lb-flag">${flag}</span>` : ''}
                         <span class="lb-name">${p.name}${p.clanTag ? ` <span class="lb-clan">[${p.clanTag}]</span>` : ''}</span>
+                        ${showInvite ? `<button class="lb-invite-btn" data-target="${p.id}">+ Invite</button>` : ''}
                         <span class="lb-score">${p.bestScore.toLocaleString()}</span>
-                    </div>
-                `).join('');
+                    </div>`;
+                }).join('');
+
+                // Bind invite buttons
+                container.querySelectorAll('.lb-invite-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        btn.disabled = true;
+                        try {
+                            const result = await this.api('POST', '/api/clan/invite-player', { token: this.token, targetId: btn.dataset.target });
+                            btn.textContent = '✓ Sent';
+                            btn.classList.add('sent');
+                            this.toast(result.message);
+                        } catch (e) {
+                            btn.disabled = false;
+                            this.toast(e.message);
+                        }
+                    });
+                });
             }
         } catch (e) {
             document.getElementById('lb-players-content').innerHTML = '<p style="color:#ff4444">Failed to load</p>';
@@ -628,6 +705,57 @@ class Social {
     closeLeaderboard() {
         document.getElementById('leaderboard-screen').classList.remove('active');
         document.getElementById('lobby-screen').classList.add('active');
+    }
+
+    // ========================================================
+    // PENDING CLAN INVITES (lobby notifications)
+    // ========================================================
+    async loadPendingInvites() {
+        const area = document.getElementById('invite-notif-area');
+        if (!area) return;
+        if (this.user.clanId) { area.innerHTML = ''; return; } // Already in a clan
+
+        try {
+            const data = await this.api('GET', `/api/clan/invites/${this.token}`);
+            if (!data.invites || data.invites.length === 0) {
+                area.innerHTML = '';
+                return;
+            }
+            area.innerHTML = data.invites.map(inv => `
+                <div class="invite-notif" data-clan="${inv.clanId}">
+                    <div class="invite-notif-text">
+                        <strong>[${inv.clanTag}] ${inv.clanName}</strong> invited you<br>
+                        <span style="color:#777;font-size:10px">by ${inv.invitedBy}</span>
+                    </div>
+                    <button class="btn btn-green btn-sm invite-accept-btn" data-clan="${inv.clanId}">Join</button>
+                    <button class="btn btn-outline btn-sm invite-decline-btn" data-clan="${inv.clanId}" style="color:#ff4444;border-color:rgba(255,68,68,0.2);">✕</button>
+                </div>
+            `).join('');
+
+            area.querySelectorAll('.invite-accept-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    try {
+                        const result = await this.api('POST', '/api/clan/accept-invite', { token: this.token, clanId: btn.dataset.clan });
+                        this.user.clanId = result.clan.id;
+                        this.clan = result.clan;
+                        this.toast(`Joined [${result.clan.tag}] ${result.clan.name}!`);
+                        this.refreshClanBadge();
+                        this.loadPendingInvites();
+                    } catch (e) { this.toast(e.message); }
+                });
+            });
+
+            area.querySelectorAll('.invite-decline-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    try {
+                        await this.api('POST', '/api/clan/decline-invite', { token: this.token, clanId: btn.dataset.clan });
+                        btn.closest('.invite-notif').remove();
+                    } catch (e) { this.toast(e.message); }
+                });
+            });
+        } catch (e) {
+            area.innerHTML = '';
+        }
     }
 }
 

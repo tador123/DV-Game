@@ -51,7 +51,7 @@ setInterval(() => saveData(db), 30000);
 
 // Register new account
 app.post('/api/register', async (req, res) => {
-    const { username, password, securityQuestion, securityAnswer } = req.body;
+    const { username, password, securityQuestion, securityAnswer, country } = req.body;
 
     if (!username || username.trim().length < 2 || username.trim().length > 20) {
         return res.status(400).json({ error: 'Username must be 2-20 characters' });
@@ -93,6 +93,8 @@ app.post('/api/register', async (req, res) => {
         totalGamesPlayed: 0,
         totalKills: 0,
         totalTimePlayed: 0,
+        country: (country && typeof country === 'string' && country.length === 2) ? country.toUpperCase() : null,
+        pendingClanInvites: [],
     };
 
     db.users[token] = user;
@@ -238,6 +240,7 @@ app.post('/api/clan/create', (req, res) => {
         tag: tagUpper,
         leaderId: token,
         members: [token],
+        roles: { [token]: 'admin' },
         createdAt: Date.now(),
         inviteCode: generateInviteCode(),
     };
@@ -281,6 +284,8 @@ app.post('/api/clan/join', (req, res) => {
     }
 
     clan.members.push(token);
+    if (!clan.roles) clan.roles = {};
+    clan.roles[token] = 'member';
     user.clanId = clan.id;
     saveData(db);
 
@@ -303,11 +308,16 @@ app.post('/api/clan/leave', (req, res) => {
 
     // Remove from clan
     clan.members = clan.members.filter(m => m !== token);
+    if (clan.roles) delete clan.roles[token];
 
-    // If leader leaves, assign new leader or delete clan
+    // If leader/admin leaves, assign new leader or delete clan
     if (clan.leaderId === token) {
         if (clan.members.length > 0) {
-            clan.leaderId = clan.members[0];
+            // Promote a manager first, then any member
+            const mgr = clan.roles ? Object.keys(clan.roles).find(id => clan.roles[id] === 'manager' && clan.members.includes(id)) : null;
+            const newLeader = mgr || clan.members[0];
+            clan.leaderId = newLeader;
+            if (clan.roles) clan.roles[newLeader] = 'admin';
         } else {
             delete db.clans[clan.id];
         }
@@ -336,6 +346,7 @@ app.get('/api/clan/:clanId/members', (req, res) => {
             totalGamesPlayed: u.totalGamesPlayed,
             totalKills: u.totalKills,
             isLeader: u.id === clan.leaderId,
+            role: (clan.roles && clan.roles[u.id]) || (u.id === clan.leaderId ? 'admin' : 'member'),
         }))
         .sort((a, b) => b.bestScore - a.bestScore);
 
@@ -352,7 +363,8 @@ app.post('/api/clan/new-invite', (req, res) => {
     if (!user || !user.clanId) return res.status(400).json({ error: 'Not in a clan' });
 
     const clan = db.clans[user.clanId];
-    if (!clan || clan.leaderId !== token) return res.status(403).json({ error: 'Only the leader can regenerate invite codes' });
+    const callerRole = clan && clan.roles ? clan.roles[token] : (clan && clan.leaderId === token ? 'admin' : null);
+    if (!clan || (callerRole !== 'admin' && callerRole !== 'manager')) return res.status(403).json({ error: 'Only admin/manager can regenerate invite codes' });
 
     clan.inviteCode = generateInviteCode();
     saveData(db);
@@ -363,19 +375,134 @@ app.post('/api/clan/new-invite', (req, res) => {
 app.get('/api/leaderboard', (req, res) => {
     const players = Object.values(db.users)
         .map(u => ({
+            id: u.id,
             name: u.name,
+            country: u.country || null,
             bestScore: u.bestScore,
             bestTime: u.bestTime,
             bestKills: u.bestKills,
             bestLevel: u.bestLevel,
             totalGamesPlayed: u.totalGamesPlayed,
             clanTag: u.clanId && db.clans[u.clanId] ? db.clans[u.clanId].tag : null,
+            clanId: u.clanId || null,
         }))
         .sort((a, b) => b.bestScore - a.bestScore)
         .slice(0, 100);
 
     players.forEach((p, i) => p.rank = i + 1);
     res.json({ players });
+});
+
+// ============================================================
+// CLAN ROLE MANAGEMENT
+// ============================================================
+
+// Set member role (admin only)
+app.post('/api/clan/set-role', (req, res) => {
+    const { token, targetId, role } = req.body;
+    if (!['manager', 'member'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+
+    const user = db.users[token];
+    if (!user || !user.clanId) return res.status(400).json({ error: 'Not in a clan' });
+
+    const clan = db.clans[user.clanId];
+    if (!clan) return res.status(404).json({ error: 'Clan not found' });
+
+    const callerRole = (clan.roles && clan.roles[token]) || (clan.leaderId === token ? 'admin' : 'member');
+    if (callerRole !== 'admin') return res.status(403).json({ error: 'Only the admin can change roles' });
+    if (targetId === token) return res.status(400).json({ error: 'Cannot change your own role' });
+    if (!clan.members.includes(targetId)) return res.status(400).json({ error: 'Player is not in your clan' });
+
+    if (!clan.roles) clan.roles = {};
+    clan.roles[targetId] = role;
+    saveData(db);
+    res.json({ success: true });
+});
+
+// Invite a player to clan (admin/manager)
+app.post('/api/clan/invite-player', (req, res) => {
+    const { token, targetId } = req.body;
+    const user = db.users[token];
+    if (!user || !user.clanId) return res.status(400).json({ error: 'Not in a clan' });
+
+    const clan = db.clans[user.clanId];
+    if (!clan) return res.status(404).json({ error: 'Clan not found' });
+
+    const callerRole = (clan.roles && clan.roles[token]) || (clan.leaderId === token ? 'admin' : 'member');
+    if (callerRole !== 'admin' && callerRole !== 'manager') return res.status(403).json({ error: 'Only admin/manager can invite' });
+
+    const target = db.users[targetId];
+    if (!target) return res.status(404).json({ error: 'Player not found' });
+    if (target.clanId) return res.status(400).json({ error: 'Player is already in a clan' });
+
+    if (!target.pendingClanInvites) target.pendingClanInvites = [];
+    // Don't duplicate
+    if (target.pendingClanInvites.some(inv => inv.clanId === clan.id)) {
+        return res.status(400).json({ error: 'Invite already sent' });
+    }
+    if (clan.members.length >= 50) return res.status(400).json({ error: 'Clan is full' });
+
+    target.pendingClanInvites.push({
+        clanId: clan.id,
+        clanName: clan.name,
+        clanTag: clan.tag,
+        invitedBy: user.name,
+        invitedAt: Date.now(),
+    });
+    saveData(db);
+    res.json({ success: true, message: `Invite sent to ${target.name}` });
+});
+
+// Get pending invites for a user
+app.get('/api/clan/invites/:token', (req, res) => {
+    const user = db.users[req.params.token];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const invites = (user.pendingClanInvites || []).filter(inv => db.clans[inv.clanId]);
+    res.json({ invites });
+});
+
+// Accept clan invite
+app.post('/api/clan/accept-invite', (req, res) => {
+    const { token, clanId } = req.body;
+    const user = db.users[token];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.clanId) return res.status(400).json({ error: 'You are already in a clan. Leave first.' });
+
+    const clan = db.clans[clanId];
+    if (!clan) {
+        user.pendingClanInvites = (user.pendingClanInvites || []).filter(i => i.clanId !== clanId);
+        saveData(db);
+        return res.status(404).json({ error: 'Clan no longer exists' });
+    }
+    if (clan.members.length >= 50) return res.status(400).json({ error: 'Clan is full' });
+
+    clan.members.push(token);
+    if (!clan.roles) clan.roles = {};
+    clan.roles[token] = 'member';
+    user.clanId = clanId;
+    user.pendingClanInvites = (user.pendingClanInvites || []).filter(i => i.clanId !== clanId);
+    saveData(db);
+    res.json({ clan: enrichClan(clan) });
+});
+
+// Decline clan invite
+app.post('/api/clan/decline-invite', (req, res) => {
+    const { token, clanId } = req.body;
+    const user = db.users[token];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    user.pendingClanInvites = (user.pendingClanInvites || []).filter(i => i.clanId !== clanId);
+    saveData(db);
+    res.json({ success: true });
+});
+
+// Update country (for existing users)
+app.post('/api/user/country', (req, res) => {
+    const { token, country } = req.body;
+    const user = db.users[token];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    user.country = (country && typeof country === 'string' && country.length === 2) ? country.toUpperCase() : null;
+    saveData(db);
+    res.json({ user: sanitizeUser(user) });
 });
 
 // ============================================================
