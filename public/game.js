@@ -22,6 +22,13 @@ const CONFIG = {
     MAX_PARTICLES: 300,
     MAX_DAMAGE_NUMBERS: 50,
     BOSS_INTERVAL: 60,
+    // Manual shoot (SHOOT joystick / mouse / space)
+    SHOOT_COOLDOWN: 180,
+    SHOOT_BASE_DAMAGE: 5,
+    SHOOT_SPEED: 600,
+    SHOOT_SIZE: 5,
+    SHOOT_PIERCE: 1,
+    SHOOT_LIFETIME: 1.5,
 };
 
 // ============================================================
@@ -155,6 +162,15 @@ class AudioManager {
                     gain.gain.setValueAtTime(0.4 * v, now);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
                     osc.start(now); osc.stop(now + 0.6);
+                    break;
+                case 'shoot':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, now);
+                    osc.frequency.exponentialRampToValueAtTime(1400, now + 0.04);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.08);
+                    gain.gain.setValueAtTime(0.12 * v, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now); osc.stop(now + 0.08);
                     break;
             }
         } catch (e) {}
@@ -515,26 +531,64 @@ class Projectile {
     update(dt) { this.trail.push({ x: this.x, y: this.y }); if (this.trail.length > 8) this.trail.shift(); this.x += this.vx * dt; this.y += this.vy * dt; this.lifetime -= dt; return this.lifetime > 0; }
     draw(ctx, cam) {
         const sx = this.x - cam.x, sy = this.y - cam.y;
-        // Enhanced trail with gradient
-        for (let i = 0; i < this.trail.length; i++) {
-            const t = this.trail[i], progress = i / this.trail.length;
-            ctx.globalAlpha = progress * 0.45;
+
+        if (this.isManualShot) {
+            // === ENERGY BOLT (manual shot) ===
+            const ang = Math.atan2(this.vy, this.vx);
+            const len = this.size * 3;
+            const cx = Math.cos(ang), sn = Math.sin(ang);
+
+            // Trail with elongated streaks
+            for (let i = 0; i < this.trail.length; i++) {
+                const t = this.trail[i], progress = i / this.trail.length;
+                ctx.globalAlpha = progress * 0.3;
+                ctx.strokeStyle = this.color; ctx.lineWidth = this.size * progress * 0.6;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(t.x - cam.x - cx * 4, t.y - cam.y - sn * 4);
+                ctx.lineTo(t.x - cam.x + cx * 4, t.y - cam.y + sn * 4);
+                ctx.stroke();
+            }
+            // Outer glow
+            ctx.globalAlpha = 0.2;
             ctx.fillStyle = this.color;
-            ctx.beginPath(); ctx.arc(t.x - cam.x, t.y - cam.y, this.size * (0.2 + progress * 0.5), 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx, sy, this.size * 3, 0, Math.PI * 2); ctx.fill();
+            // Elongated bolt body
+            ctx.globalAlpha = 0.85;
+            ctx.fillStyle = this.color;
+            ctx.shadowColor = this.color; ctx.shadowBlur = 16;
+            ctx.beginPath();
+            ctx.moveTo(sx + cx * len, sy + sn * len);
+            ctx.lineTo(sx - sn * this.size * 0.6, sy + cx * this.size * 0.6);
+            ctx.lineTo(sx - cx * len * 0.5, sy - sn * len * 0.5);
+            ctx.lineTo(sx + sn * this.size * 0.6, sy - cx * this.size * 0.6);
+            ctx.closePath(); ctx.fill();
+            // Hot white core
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(sx + cx * 2, sy + sn * 2, this.size * 0.4, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.lineCap = 'butt';
+        } else {
+            // === STANDARD PROJECTILE ===
+            for (let i = 0; i < this.trail.length; i++) {
+                const t = this.trail[i], progress = i / this.trail.length;
+                ctx.globalAlpha = progress * 0.45;
+                ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.arc(t.x - cam.x, t.y - cam.y, this.size * (0.2 + progress * 0.5), 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 0.25;
+            ctx.fillStyle = this.color;
+            ctx.beginPath(); ctx.arc(sx, sy, this.size * 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = this.color;
+            ctx.shadowColor = this.color; ctx.shadowBlur = 12;
+            ctx.beginPath(); ctx.arc(sx, sy, this.size, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(sx, sy, this.size * 0.35, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
         }
-        // Outer glow
-        ctx.globalAlpha = 0.25;
-        ctx.fillStyle = this.color;
-        ctx.beginPath(); ctx.arc(sx, sy, this.size * 2.5, 0, Math.PI * 2); ctx.fill();
-        // Core
         ctx.globalAlpha = 1;
-        ctx.fillStyle = this.color;
-        ctx.shadowColor = this.color; ctx.shadowBlur = 12;
-        ctx.beginPath(); ctx.arc(sx, sy, this.size, 0, Math.PI * 2); ctx.fill();
-        // Bright center
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(sx, sy, this.size * 0.35, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
     }
 }
 
@@ -755,6 +809,8 @@ class Game {
 
         this.keys = {};
         this.lastFacing = { x: 1, y: 0 };
+        this.mouseAim = null;
+        this.mouseDown = false;
         this.screenShake = { x: 0, y: 0, intensity: 0 };
         this.state = 'menu';
         this.paused = false;
@@ -808,6 +864,17 @@ class Game {
             }
         });
         window.addEventListener('keyup', (e) => { this.keys[e.key.toLowerCase()] = false; });
+
+        // Mouse aiming + click to shoot (desktop)
+        this.canvas.addEventListener('mousemove', (e) => {
+            if (this.state !== 'playing') return;
+            this.mouseAim = { x: e.clientX, y: e.clientY };
+        });
+        this.canvas.addEventListener('mousedown', (e) => {
+            if (this.state !== 'playing' || e.button !== 0) return;
+            this.mouseDown = true;
+        });
+        window.addEventListener('mouseup', (e) => { if (e.button === 0) this.mouseDown = false; });
     }
 
     bindPauseEvents() {
@@ -910,6 +977,9 @@ class Game {
         this.healthSupplies = []; this.healthSpawnTimer = rand(10, 18);
         this.gameTime = 0; this.kills = 0; this.enemySpawnTimer = 0;
         this.bossTimer = CONFIG.BOSS_INTERVAL; this.difficultyScale = 1;
+        this.shootTimer = 0;
+        this.shootCombo = 0;
+        this.shootComboTimer = 0;
 
         this.state = 'playing';
         this.lastTime = performance.now();
@@ -945,6 +1015,7 @@ class Game {
             this.playerTrail = this.playerTrail.filter(t => t.life > 0);
         }
         this.updatePlayer(dt);
+        this.updateManualShoot(dt);
         this.updateWeapons(dt);
         this.updateProjectiles(dt);
         this.updateZones(dt);
@@ -1000,6 +1071,73 @@ class Game {
         p.x = clamp(p.x, 30, CONFIG.WORLD_SIZE - 30);
         p.y = clamp(p.y, 30, CONFIG.WORLD_SIZE - 30);
         p.invincibleTimer = Math.max(0, p.invincibleTimer - dt * 1000);
+    }
+
+    // ========================================================
+    // MANUAL SHOOT (SHOOT joystick / Mouse click / Spacebar)
+    // ========================================================
+    updateManualShoot(dt) {
+        this.shootTimer -= dt * 1000;
+        this.shootComboTimer -= dt;
+        if (this.shootComboTimer <= 0) this.shootCombo = 0;
+
+        // Determine if shooting + direction
+        let shootDir = null;
+        const aim = this.joystick.getAim();
+        if (aim) {
+            // Mobile SHOOT joystick
+            shootDir = Math.atan2(aim.y, aim.x);
+        } else if (this.mouseDown && this.mouseAim) {
+            // Desktop mouse click
+            const p = this.player, cam = this.camera;
+            const mx = this.mouseAim.x + cam.x - p.x;
+            const my = this.mouseAim.y + cam.y - p.y;
+            shootDir = Math.atan2(my, mx);
+        } else if (this.keys[' ']) {
+            // Spacebar: fire in facing direction
+            shootDir = Math.atan2(this.lastFacing.y, this.lastFacing.x);
+        }
+
+        if (shootDir === null || this.shootTimer > 0) return;
+
+        const p = this.player;
+        // Damage scales with level + might
+        const levelBonus = 1 + (p.level - 1) * 0.15;
+        const baseDmg = CONFIG.SHOOT_BASE_DAMAGE * levelBonus * p.mightMult;
+        // Combo: rapid hits increase damage slightly
+        const comboDmg = baseDmg * (1 + this.shootCombo * 0.05);
+        const finalDmg = Math.floor(comboDmg);
+
+        // Cooldown gets slightly faster at higher levels (min 100ms)
+        const cd = Math.max(100, CONFIG.SHOOT_COOLDOWN - p.level * 4);
+        this.shootTimer = cd;
+
+        // Pierce increases every 5 levels
+        const pierce = CONFIG.SHOOT_PIERCE + Math.floor(p.level / 5);
+
+        // Fire the shot
+        const spd = CONFIG.SHOOT_SPEED;
+        const proj = new Projectile(
+            p.x, p.y,
+            Math.cos(shootDir) * spd, Math.sin(shootDir) * spd,
+            finalDmg, '#00eeff', CONFIG.SHOOT_SIZE, pierce, CONFIG.SHOOT_LIFETIME
+        );
+        proj.isManualShot = true;
+        this.projectiles.push(proj);
+
+        // Muzzle flash particles
+        for (let i = 0; i < 3; i++) {
+            const spread = shootDir + rand(-0.4, 0.4);
+            this.addParticle(p.x + Math.cos(shootDir) * 20, p.y + Math.sin(shootDir) * 20,
+                randChoice(['#00eeff', '#88ffff', '#ffffff']), rand(40, 100), 0.15, rand(1.5, 3));
+        }
+
+        // Update combo
+        this.shootCombo = Math.min(this.shootCombo + 1, 20);
+        this.shootComboTimer = 0.8;
+
+        // SFX
+        this.audio.play('shoot');
     }
 
     // ========================================================
@@ -1338,6 +1476,7 @@ class Game {
         ctx.fillRect(0, 0, W, H);
 
         this.drawMinimap();
+        this.drawCrosshair(ctx);
         this.joystick.drawJoysticks(ctx);
     }
 
@@ -1550,6 +1689,48 @@ class Game {
         // Border
         mc.strokeStyle = 'rgba(0,200,255,0.2)'; mc.lineWidth = 1;
         mc.strokeRect(0, 0, mw, mh);
+    }
+
+    drawCrosshair(ctx) {
+        // Show a crosshair in the shoot direction (mobile joystick or mouse)
+        let aimDir = null;
+        const aim = this.joystick.getAim();
+        if (aim) {
+            aimDir = { x: aim.x, y: aim.y };
+        } else if (this.mouseDown && this.mouseAim) {
+            const p = this.player, cam = this.camera;
+            const mx = this.mouseAim.x + cam.x - p.x;
+            const my = this.mouseAim.y + cam.y - p.y;
+            const len = Math.sqrt(mx * mx + my * my);
+            if (len > 0) aimDir = { x: mx / len, y: my / len };
+        }
+        if (!aimDir) return;
+
+        const p = this.player, cam = this.camera;
+        const sx = p.x - cam.x + this.screenShake.x;
+        const sy = p.y - cam.y + this.screenShake.y;
+        const dist = 55;
+        const cx = sx + aimDir.x * dist;
+        const cy = sy + aimDir.y * dist;
+        const t = this.animTime;
+        const pulse = 0.4 + Math.sin(t * 8) * 0.15;
+
+        ctx.globalAlpha = pulse;
+        ctx.strokeStyle = '#00eeff';
+        ctx.lineWidth = 1.5;
+        // Outer ring
+        ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2); ctx.stroke();
+        // Cross lines
+        const g = 3, e = 7;
+        ctx.beginPath(); ctx.moveTo(cx - e, cy); ctx.lineTo(cx - g, cy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + g, cy); ctx.lineTo(cx + e, cy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, cy - e); ctx.lineTo(cx, cy - g); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, cy + g); ctx.lineTo(cx, cy + e); ctx.stroke();
+        // Center dot
+        ctx.globalAlpha = pulse + 0.2;
+        ctx.fillStyle = '#00eeff';
+        ctx.beginPath(); ctx.arc(cx, cy, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
     }
 
     // ========================================================
