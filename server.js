@@ -95,6 +95,7 @@ app.post('/api/register', async (req, res) => {
         totalTimePlayed: 0,
         country: (country && typeof country === 'string' && country.length === 2) ? country.toUpperCase() : null,
         pendingClanInvites: [],
+        notifications: [],
     };
 
     db.users[token] = user;
@@ -199,15 +200,31 @@ app.post('/api/score', (req, res) => {
     user.totalKills += kills;
     user.totalTimePlayed += time;
 
-    if (score > user.bestScore) {
+    const isNewBest = score > user.bestScore;
+    if (isNewBest) {
         user.bestScore = score;
         user.bestTime = time;
         user.bestKills = kills;
         user.bestLevel = level;
+
+        // Notify clan members of new best score
+        if (user.clanId && db.clans[user.clanId]) {
+            const clan = db.clans[user.clanId];
+            clan.members.forEach(mId => {
+                if (mId !== token && db.users[mId]) {
+                    pushNotification(db.users[mId], {
+                        type: 'clan_score',
+                        title: 'New Best Score!',
+                        message: `${user.name} set a new best score of ${score.toLocaleString()}!`,
+                        icon: '🏆',
+                    });
+                }
+            });
+        }
     }
 
     saveData(db);
-    res.json({ score, bestScore: user.bestScore, user: sanitizeUser(user) });
+    res.json({ score, bestScore: user.bestScore, isNewBest, user: sanitizeUser(user) });
 });
 
 // ============================================================
@@ -449,6 +466,15 @@ app.post('/api/clan/invite-player', (req, res) => {
         invitedBy: user.name,
         invitedAt: Date.now(),
     });
+
+    // Push a real-time notification to the target
+    pushNotification(target, {
+        type: 'clan_invite',
+        title: 'Clan Invite',
+        message: `${user.name} invited you to [${clan.tag}] ${clan.name}`,
+        icon: '📩',
+    });
+
     saveData(db);
     res.json({ success: true, message: `Invite sent to ${target.name}` });
 });
@@ -505,9 +531,45 @@ app.post('/api/user/country', (req, res) => {
     res.json({ user: sanitizeUser(user) });
 });
 
+// Get notifications for a user (polling endpoint — lightweight)
+app.get('/api/notifications/:token', (req, res) => {
+    const user = db.users[req.params.token];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const notifs = user.notifications || [];
+    res.json({ notifications: notifs });
+});
+
+// Acknowledge (clear) notifications
+app.post('/api/notifications/ack', (req, res) => {
+    const { token } = req.body;
+    const user = db.users[token];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    user.notifications = [];
+    saveData(db);
+    res.json({ success: true });
+});
+
 // ============================================================
 // HELPERS
 // ============================================================
+
+// Push a notification to a user (capped at 20, FIFO)
+function pushNotification(user, { type, title, message, icon }) {
+    if (!user.notifications) user.notifications = [];
+    user.notifications.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        type,
+        title,
+        message,
+        icon: icon || '🔔',
+        createdAt: Date.now(),
+    });
+    // Cap at 20 — drop oldest
+    if (user.notifications.length > 20) {
+        user.notifications = user.notifications.slice(-20);
+    }
+}
+
 function generateInviteCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';

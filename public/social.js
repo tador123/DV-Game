@@ -8,6 +8,10 @@ class Social {
         this.token = localStorage.getItem('ds_token') || null;
         this.user = null;
         this.clan = null;
+        this._notifPollTimer = null;
+        this._notifQueue = [];
+        this._notifShowing = 0;
+        this._notifMuted = localStorage.getItem('ds_mute_notif') === '1';
 
         this.bindAuthTabs();
         this.bindLoginEvents();
@@ -284,6 +288,7 @@ class Social {
     // LOGOUT
     // ========================================================
     logout() {
+        this._stopNotifPolling();
         this.token = null;
         localStorage.removeItem('ds_token');
         this.user = null;
@@ -313,6 +318,17 @@ class Social {
         // Exit game button
         document.getElementById('exit-btn').addEventListener('click', () => this.exitGame());
 
+        // Mute notifications toggle
+        const muteBox = document.getElementById('mute-notif-cb');
+        if (muteBox) {
+            muteBox.checked = !this._notifMuted;
+            muteBox.addEventListener('change', () => {
+                this._notifMuted = !muteBox.checked;
+                localStorage.setItem('ds_mute_notif', this._notifMuted ? '1' : '0');
+                this.toast(this._notifMuted ? 'Clan notifications muted' : 'Clan notifications enabled');
+            });
+        }
+
         // Leaderboard tabs
         document.querySelectorAll('#leaderboard-panel .tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -331,6 +347,10 @@ class Social {
 
         document.getElementById('lobby-player-name').textContent = this.user.name;
 
+        // Sync mute checkbox state
+        const muteBox = document.getElementById('mute-notif-cb');
+        if (muteBox) muteBox.checked = !this._notifMuted;
+
         // Stats
         const statsEl = document.getElementById('lobby-stats');
         statsEl.innerHTML = `
@@ -345,6 +365,9 @@ class Social {
 
         // Load pending clan invites
         this.loadPendingInvites();
+
+        // Start notification polling (every 15s, lightweight)
+        this._startNotifPolling();
     }
 
     async refreshClanBadge() {
@@ -366,6 +389,7 @@ class Social {
     }
 
     startGame() {
+        this._stopNotifPolling();
         document.getElementById('lobby-screen').classList.remove('active');
         document.getElementById('gameover-screen').classList.remove('active');
         // Game will be started via game.js integration
@@ -756,6 +780,91 @@ class Social {
         } catch (e) {
             area.innerHTML = '';
         }
+    }
+
+    // ========================================================
+    // NOTIFICATION POLLING + POPUP SYSTEM
+    // ========================================================
+    _startNotifPolling() {
+        this._stopNotifPolling();
+        // Do an immediate check, then every 15 seconds
+        this._pollNotifications();
+        this._notifPollTimer = setInterval(() => this._pollNotifications(), 15000);
+    }
+
+    _stopNotifPolling() {
+        if (this._notifPollTimer) {
+            clearInterval(this._notifPollTimer);
+            this._notifPollTimer = null;
+        }
+    }
+
+    async _pollNotifications() {
+        if (!this.token) return;
+        try {
+            const data = await this.api('GET', `/api/notifications/${this.token}`);
+            if (!data.notifications || data.notifications.length === 0) return;
+
+            // Acknowledge immediately so we don't re-show
+            this.api('POST', '/api/notifications/ack', { token: this.token }).catch(() => {});
+
+            // If muted, skip showing popups
+            if (this._notifMuted) return;
+
+            // Queue notifications for display
+            data.notifications.forEach(n => this._notifQueue.push(n));
+            this._processNotifQueue();
+        } catch (e) {
+            // Silent fail — don't interrupt gameplay
+        }
+    }
+
+    _processNotifQueue() {
+        // Max 3 popups visible at once
+        while (this._notifQueue.length > 0 && this._notifShowing < 3) {
+            const notif = this._notifQueue.shift();
+            this._showNotifPopup(notif);
+        }
+    }
+
+    _showNotifPopup(notif) {
+        const container = document.getElementById('notif-popup-container');
+        if (!container) return;
+
+        this._notifShowing++;
+
+        const el = document.createElement('div');
+        el.className = `notif-popup ${notif.type || ''}`;
+        el.innerHTML = `
+            <span class="notif-icon">${notif.icon || '🔔'}</span>
+            <div class="notif-body">
+                <div class="notif-title">${notif.title || 'Notification'}</div>
+                <div class="notif-msg">${notif.message || ''}</div>
+            </div>
+            <button class="notif-close">✕</button>
+        `;
+
+        container.appendChild(el);
+
+        const dismiss = () => {
+            if (el._dismissed) return;
+            el._dismissed = true;
+            el.classList.add('removing');
+            setTimeout(() => {
+                el.remove();
+                this._notifShowing--;
+                this._processNotifQueue();
+            }, 300);
+        };
+
+        el.querySelector('.notif-close').addEventListener('click', (e) => {
+            e.stopPropagation();
+            dismiss();
+        });
+        el.addEventListener('click', dismiss);
+
+        // Auto-dismiss after 5 seconds
+        setTimeout(dismiss, 5000);
     }
 }
 
