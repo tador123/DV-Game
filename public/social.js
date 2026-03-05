@@ -852,20 +852,20 @@ class Social {
                 ${p.clanTag ? `<p style="color:#00e5ff;font-size:13px;margin-top:-6px;">[${p.clanTag}]</p>` : ''}
                 <div class="detail-stats-grid">
                     <div class="detail-stat gold">
-                        <div class="detail-stat-val">${(p.bestScore || 0).toLocaleString()}</div>
-                        <div class="detail-stat-label">Best Score</div>
+                        <div class="ds-val">${(p.bestScore || 0).toLocaleString()}</div>
+                        <div class="ds-label">Best Score</div>
                     </div>
                     <div class="detail-stat">
-                        <div class="detail-stat-val">${(p.totalGamesPlayed || 0).toLocaleString()}</div>
-                        <div class="detail-stat-label">Games Played</div>
+                        <div class="ds-val">${(p.totalGamesPlayed || 0).toLocaleString()}</div>
+                        <div class="ds-label">Games Played</div>
                     </div>
                     <div class="detail-stat red">
-                        <div class="detail-stat-val">${(p.totalKills || 0).toLocaleString()}</div>
-                        <div class="detail-stat-label">Total Kills</div>
+                        <div class="ds-val">${(p.totalKills || 0).toLocaleString()}</div>
+                        <div class="ds-label">Total Kills</div>
                     </div>
                     <div class="detail-stat">
-                        <div class="detail-stat-val">${p.bestLevel || 1}</div>
-                        <div class="detail-stat-label">Best Level</div>
+                        <div class="ds-val">${p.bestLevel || 1}</div>
+                        <div class="ds-label">Best Level</div>
                     </div>
                 </div>
             </div>
@@ -886,12 +886,12 @@ class Social {
                 <p style="color:#aaa;font-size:13px;margin-top:-6px;">Leader: ${c.leaderName} • ${c.memberCount} members</p>
                 <div class="detail-stats-grid">
                     <div class="detail-stat gold">
-                        <div class="detail-stat-val">${(c.totalScore || 0).toLocaleString()}</div>
-                        <div class="detail-stat-label">Clan Score</div>
+                        <div class="ds-val">${(c.totalScore || 0).toLocaleString()}</div>
+                        <div class="ds-label">Clan Score</div>
                     </div>
                     <div class="detail-stat red">
-                        <div class="detail-stat-val">${(c.totalKills || 0).toLocaleString()}</div>
-                        <div class="detail-stat-label">Total Kills</div>
+                        <div class="ds-val">${(c.totalKills || 0).toLocaleString()}</div>
+                        <div class="ds-label">Total Kills</div>
                     </div>
                 </div>
             </div>
