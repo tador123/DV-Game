@@ -86,6 +86,17 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+        /* ========== BIO SCI-FI ANIMATIONS ========== */
+        @keyframes bioGlow { 0%,100% { box-shadow: 0 0 8px rgba(0,255,200,0.15), inset 0 0 8px rgba(0,255,200,0.05); } 50% { box-shadow: 0 0 20px rgba(0,255,200,0.3), inset 0 0 12px rgba(0,255,200,0.08); } }
+        @keyframes borderPulse { 0%,100% { border-color: rgba(0,255,200,0.2); } 50% { border-color: rgba(0,255,200,0.5); } }
+        @keyframes scanLine { 0% { transform: translateY(-100%); } 100% { transform: translateY(100vh); } }
+        @keyframes textFlicker { 0%,97%,100% { opacity: 1; } 98% { opacity: 0.7; } 99% { opacity: 0.9; } }
+        @keyframes neonPulse { 0%,100% { text-shadow: 0 0 7px rgba(0,255,200,0.5), 0 0 20px rgba(0,255,200,0.2); } 50% { text-shadow: 0 0 12px rgba(0,255,200,0.8), 0 0 35px rgba(0,255,200,0.35), 0 0 60px rgba(0,255,200,0.1); } }
+        @keyframes floatUp { 0% { transform: translateY(0); } 50% { transform: translateY(-4px); } 100% { transform: translateY(0); } }
+        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes shimmer { 0% { left: -100%; } 100% { left: 200%; } }
+        @keyframes hexPulse { 0%,100% { opacity: 0.03; } 50% { opacity: 0.07; } }
+
         .panel {
             background: rgba(15,15,30,0.97);
             border: 1px solid rgba(255,255,255,0.1);
@@ -136,18 +147,151 @@
         .auth-error { color: #ff4444; font-size: 12px; min-height: 16px; text-align: center; }
         .auth-success { color: #44cc44; font-size: 12px; min-height: 16px; text-align: center; }
 
-        /* ========== LOBBY SCREEN ========== */
-        #lobby-screen { background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a12 100%); z-index: 250; padding: 16px; gap: 0; }
-        #lobby-welcome { color: #aaa; font-size: clamp(11px, 2.5vw, 14px); margin-bottom: 2px; text-align: center; }
-        #lobby-player-name { color: #ffd700; font-size: clamp(20px, 5vw, 28px); font-weight: 900; margin-bottom: clamp(8px, 2vh, 24px); text-align: center; }
-        
+        /* ========== LOBBY SCREEN — BIO SCI-FI ========== */
+        #lobby-screen {
+            background: radial-gradient(ellipse at 30% 20%, rgba(0,255,200,0.04) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(120,0,255,0.04) 0%, transparent 50%),
+                        radial-gradient(ellipse at center, #0d1117 0%, #060a10 100%);
+            z-index: 250; padding: 16px; gap: 0;
+            overflow: hidden;
+        }
+        /* Animated scan-line overlay */
+        #lobby-screen::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(0,255,200,0.25), transparent);
+            animation: scanLine 5s linear infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+        /* Hex grid background texture */
+        #lobby-screen::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(0,255,200,0.06) 1px, transparent 1px);
+            background-size: 24px 24px;
+            animation: hexPulse 4s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        #lobby-screen > * { position: relative; z-index: 2; }
+
+        #lobby-welcome {
+            color: rgba(0,255,200,0.5);
+            font-size: clamp(11px, 2.5vw, 14px);
+            margin-bottom: 2px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 600;
+            animation: textFlicker 4s infinite;
+        }
+        #lobby-player-name {
+            color: #00ffc8;
+            font-size: clamp(22px, 5.5vw, 32px);
+            font-weight: 900;
+            margin-bottom: clamp(8px, 2vh, 24px);
+            text-align: center;
+            letter-spacing: 2px;
+            animation: neonPulse 3s ease-in-out infinite;
+        }
+
         .lobby-section { margin-bottom: 12px; width: 100%; }
-        .lobby-actions { display: flex; flex-direction: column; gap: 8px; align-items: center; width: 90%; max-width: 340px; }
-        .lobby-actions .btn { width: 100%; padding: 12px 30px; font-size: 14px; }
+        .lobby-actions { display: flex; flex-direction: column; gap: 10px; align-items: center; width: 90%; max-width: 360px; }
+
+        /* ========== GLASSMORPHISM LOBBY BUTTONS ========== */
+        .lobby-actions .btn {
+            width: 100%;
+            padding: 14px 30px;
+            font-size: 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 1.5px;
+        }
+        /* Shimmer sweep on hover */
+        .lobby-actions .btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 60%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+            transition: none;
+        }
+        .lobby-actions .btn:hover::after {
+            animation: shimmer 0.8s ease;
+        }
+        .lobby-actions .btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 32px rgba(0,255,200,0.15);
+        }
+        .lobby-actions .btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        /* Glass-Play (primary — bio green/cyan) */
+        .lobby-actions .btn-red {
+            background: linear-gradient(135deg, rgba(0,255,200,0.15), rgba(0,200,160,0.08));
+            border-color: rgba(0,255,200,0.3);
+            color: #00ffc8;
+            box-shadow: 0 4px 20px rgba(0,255,200,0.1), inset 0 1px 0 rgba(255,255,255,0.08);
+            animation: bioGlow 3s ease-in-out infinite;
+            text-shadow: 0 0 10px rgba(0,255,200,0.4);
+        }
+        .lobby-actions .btn-red:hover { border-color: rgba(0,255,200,0.6); color: #fff; }
+
+        /* Glass-Clan (gold/amber) */
+        .lobby-actions .btn-gold {
+            background: linear-gradient(135deg, rgba(255,193,7,0.1), rgba(255,143,0,0.06));
+            border-color: rgba(255,193,7,0.25);
+            color: #ffd700;
+            box-shadow: 0 4px 20px rgba(255,193,7,0.08), inset 0 1px 0 rgba(255,255,255,0.06);
+            text-shadow: 0 0 8px rgba(255,193,7,0.3);
+        }
+        .lobby-actions .btn-gold:hover { border-color: rgba(255,193,7,0.5); color: #fff; }
+
+        /* Glass-Leaderboard (blue/purple) */
+        .lobby-actions .btn-blue {
+            background: linear-gradient(135deg, rgba(100,100,255,0.1), rgba(140,80,255,0.06));
+            border-color: rgba(100,130,255,0.25);
+            color: #88aaff;
+            box-shadow: 0 4px 20px rgba(100,130,255,0.08), inset 0 1px 0 rgba(255,255,255,0.06);
+            text-shadow: 0 0 8px rgba(100,130,255,0.3);
+        }
+        .lobby-actions .btn-blue:hover { border-color: rgba(100,130,255,0.5); color: #fff; }
+
+        /* Glass-Outline (logout, exit) */
+        .lobby-actions .btn-outline {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .lobby-actions .btn-outline:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.25); }
 
         /* PWA Install Button */
-        .install-btn { background: linear-gradient(135deg, #00c853, #00e676); border: none; color: #fff; font-weight: 800; font-size: 13px; padding: 10px 20px; border-radius: 10px; cursor: pointer; display: none; width: 100%; margin-top: 4px; letter-spacing: 0.5px; box-shadow: 0 2px 12px rgba(0,200,80,0.3); transition: transform 0.15s; }
-        .install-btn:active { transform: scale(0.97); }
+        .install-btn {
+            background: linear-gradient(135deg, rgba(0,200,80,0.12), rgba(0,230,118,0.06));
+            border: 1px solid rgba(0,200,80,0.25);
+            color: #00e676;
+            font-weight: 800; font-size: 13px; padding: 12px 20px;
+            border-radius: 14px;
+            cursor: pointer; display: none; width: 100%; margin-top: 4px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 20px rgba(0,200,80,0.08), inset 0 1px 0 rgba(255,255,255,0.06);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-shadow: 0 0 8px rgba(0,200,80,0.3);
+            font-family: inherit; text-transform: uppercase;
+        }
+        .install-btn:hover { transform: translateY(-2px); border-color: rgba(0,200,80,0.5); color: #fff; }
+        .install-btn:active { transform: scale(0.98); }
         .install-banner { display: none; text-align: center; margin-top: 8px; padding: 8px; background: rgba(0,200,80,0.1); border: 1px solid rgba(0,200,80,0.3); border-radius: 10px; color: #aaa; font-size: 11px; max-width: 340px; width: 90%; }
         .install-banner strong { color: #00e676; }
 
@@ -161,31 +305,52 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(255,215,0,0.1);
-            border: 1px solid rgba(255,215,0,0.3);
-            border-radius: 10px;
-            padding: 10px 16px;
+            background: rgba(255,215,0,0.05);
+            border: 1px solid rgba(255,215,0,0.2);
+            border-radius: 12px;
+            padding: 10px 18px;
             margin-bottom: 16px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            animation: borderPulse 3s ease-in-out infinite;
+            box-shadow: 0 0 12px rgba(255,215,0,0.06), inset 0 1px 0 rgba(255,255,255,0.05);
         }
-        .clan-badge .tag { color: #ffd700; font-weight: 900; font-size: 16px; }
-        .clan-badge .cname { color: #fff; font-size: 14px; }
+        .clan-badge .tag { color: #ffd700; font-weight: 900; font-size: 16px; text-shadow: 0 0 8px rgba(255,215,0,0.4); }
+        .clan-badge .cname { color: #ccc; font-size: 14px; }
 
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 6px;
-            margin: 8px 0;
+            gap: 8px;
+            margin: 10px 0;
             width: 90%;
-            max-width: 340px;
+            max-width: 360px;
         }
         .stats-grid .stat-card {
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            padding: 8px 6px;
+            background: rgba(0,255,200,0.03);
+            border: 1px solid rgba(0,255,200,0.1);
+            border-radius: 12px;
+            padding: 12px 8px;
             text-align: center;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
-        .stats-grid .stat-val { color: #ffd700; font-size: clamp(16px, 4vw, 20px); font-weight: 800; }
-        .stats-grid .stat-label { color: #888; font-size: 10px; margin-top: 1px; }
+        .stats-grid .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,255,200,0.3), transparent);
+        }
+        .stats-grid .stat-card:hover {
+            border-color: rgba(0,255,200,0.25);
+            background: rgba(0,255,200,0.06);
+        }
+        .stats-grid .stat-val { color: #00ffc8; font-size: clamp(16px, 4vw, 20px); font-weight: 800; text-shadow: 0 0 6px rgba(0,255,200,0.3); }
+        .stats-grid .stat-label { color: rgba(0,255,200,0.4); font-size: 10px; margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
 
         /* ========== CLAN PANEL ========== */
         #clan-screen { background: rgba(0,0,0,0.85); z-index: 260; }
@@ -433,11 +598,11 @@
             #login-form .btn { padding: 10px 24px; font-size: 13px; }
             #lobby-player-name { font-size: clamp(18px, 4vw, 24px); margin-bottom: 6px; }
             .stats-grid { gap: 4px; margin: 4px 0; max-width: 300px; }
-            .stats-grid .stat-card { padding: 5px 4px; }
+            .stats-grid .stat-card { padding: 5px 4px; border-radius: 8px; }
             .stats-grid .stat-val { font-size: 14px; }
             .stats-grid .stat-label { font-size: 9px; }
             .lobby-actions { gap: 5px; max-width: 300px; }
-            .lobby-actions .btn { padding: 9px 20px; font-size: 12px; }
+            .lobby-actions .btn { padding: 9px 20px; font-size: 12px; border-radius: 10px; }
             .install-btn { padding: 8px 16px; font-size: 11px; }
             .install-banner { padding: 6px; font-size: 10px; margin-top: 4px; }
             .btn-sm { padding: 6px 14px; font-size: 10px; }
@@ -518,10 +683,10 @@
             .install-banner { display: none !important; }
             #lobby-welcome { font-size: 10px; margin-bottom: 1px; }
             #lobby-player-name { font-size: 18px; margin-bottom: 4px; }
-            .stats-grid .stat-card { padding: 4px 3px; }
+            .stats-grid .stat-card { padding: 4px 3px; border-radius: 6px; }
             .stats-grid .stat-val { font-size: 13px; }
             .lobby-actions { gap: 4px; }
-            .lobby-actions .btn { padding: 8px 16px; font-size: 11px; }
+            .lobby-actions .btn { padding: 8px 16px; font-size: 11px; border-radius: 8px; }
             .install-btn { font-size: 10px; padding: 7px 12px; }
             /* --- Clan/Leaderboard ultra compact --- */
             .panel { padding: 10px; max-height: 95vh; }
@@ -716,19 +881,19 @@
 
     <!-- ========== LOBBY SCREEN ========== -->
     <div id="lobby-screen" class="overlay">
-        <div id="lobby-welcome">Welcome back,</div>
+        <div id="lobby-welcome">⟐ OPERATIVE ONLINE ⟐</div>
         <div id="lobby-player-name">Player</div>
         <div id="lobby-clan-badge" class="hidden"></div>
 
         <div class="stats-grid" id="lobby-stats"></div>
 
         <div class="lobby-actions">
-            <button id="play-btn" class="btn btn-red" style="width:100%">▶ PLAY</button>
+            <button id="play-btn" class="btn btn-red" style="width:100%">⟡ DEPLOY</button>
             <button id="clan-btn" class="btn btn-gold" style="width:100%">⚔ CLAN</button>
-            <button id="leaderboard-btn" class="btn btn-blue" style="width:100%">🏆 LEADERBOARD</button>
+            <button id="leaderboard-btn" class="btn btn-blue" style="width:100%">◈ LEADERBOARD</button>
             <button id="install-btn" class="install-btn">📲 INSTALL APP (Fullscreen)</button>
-            <button id="logout-btn" class="btn btn-outline btn-sm" style="margin-top:8px">🚪 Logout</button>
-            <button id="exit-btn" class="btn btn-outline btn-sm" style="margin-top:2px;color:#ff4444;border-color:rgba(255,68,68,0.3);">✕ EXIT GAME</button>
+            <button id="logout-btn" class="btn btn-outline btn-sm" style="margin-top:8px">⏻ Logout</button>
+            <button id="exit-btn" class="btn btn-outline btn-sm" style="margin-top:2px;color:#ff4444;border-color:rgba(255,68,68,0.15);">✕ EXIT GAME</button>
         </div>
     </div>
 
@@ -778,8 +943,8 @@
         <div class="ios-arrow"></div>
     </div>
 
-    <script src="social.js?v=10"></script>
-    <script src="game.js?v=10"></script>
+    <script src="social.js?v=11"></script>
+    <script src="game.js?v=11"></script>
 
     <!-- PWA: Service Worker + Install Prompt -->
     <script>
