@@ -297,7 +297,7 @@
                         radial-gradient(ellipse at 70% 80%, rgba(120,0,255,0.04) 0%, transparent 50%),
                         radial-gradient(ellipse at center, #0d1117 0%, #060a10 100%);
             z-index: 250; padding: 16px; gap: 0;
-            overflow: hidden;
+            overflow-y: auto; overflow-x: hidden;
         }
         /* Animated scan-line overlay */
         #lobby-screen::before {
@@ -345,6 +345,10 @@
 
         .lobby-section { margin-bottom: 12px; width: 100%; }
         .lobby-actions { display: flex; flex-direction: column; gap: 10px; align-items: center; width: 90%; max-width: 360px; }
+        /* Lobby columns — stack vertically by default (portrait), side-by-side in landscape via media query */
+        .lobby-left-col, .lobby-right-col {
+            display: flex; flex-direction: column; align-items: center; width: 90%; max-width: 360px;
+        }
 
         /* ========== GLASSMORPHISM LOBBY BUTTONS ========== */
         .lobby-actions .btn {
@@ -790,6 +794,7 @@
                         radial-gradient(ellipse at 70% 80%, rgba(120,0,255,0.04) 0%, transparent 50%),
                         rgba(6,10,16,0.97);
             z-index: 260; padding: 16px; gap: 0;
+            overflow-y: auto; overflow-x: hidden;
         }
         #charselect-title { color: #00ffc8; font-size: clamp(20px, 5vw, 30px); font-weight: 900; text-shadow: 0 0 20px rgba(0,255,200,0.4); margin-bottom: 4px; letter-spacing: 2px; }
         #charselect-subtitle { color: rgba(0,255,200,0.4); font-size: 12px; margin-bottom: 16px; letter-spacing: 1px; }
@@ -816,7 +821,7 @@
         .char-card:hover { border-color: rgba(0,255,200,0.5); transform: translateY(-2px); }
         .char-card.selected { border-color: #00ffc8; box-shadow: 0 0 24px rgba(0,255,200,0.25), inset 0 0 20px rgba(0,255,200,0.05); }
         .char-card.selected::after {
-            content: '✓';
+            content: '\2713';
             position: absolute; top: 6px; right: 8px;
             color: #00ffc8; font-size: 16px; font-weight: 900;
         }
@@ -829,6 +834,7 @@
         .char-stat span { color: #fff; font-weight: 700; }
         .char-passive { font-size: 9px; color: rgba(255,215,0,0.7); font-style: italic; }
         #charselect-start { margin-top: 4px; }
+        .charselect-btns { display: flex; gap: 10px; align-items: center; }
 
         /* ========== META UPGRADE SCREEN (BP) ========== */
         #meta-screen {
@@ -836,7 +842,9 @@
                         radial-gradient(ellipse at 70% 80%, rgba(120,0,255,0.04) 0%, transparent 50%),
                         rgba(6,10,16,0.97);
             z-index: 260; padding: 16px; gap: 0;
+            overflow-y: auto; overflow-x: hidden;
         }
+        #meta-header { text-align: center; }
         #meta-title { color: #ffd700; font-size: clamp(20px, 5vw, 28px); font-weight: 900; text-shadow: 0 0 20px rgba(255,215,0,0.4); margin-bottom: 2px; letter-spacing: 2px; }
         #meta-bp { color: #ffd700; font-size: 16px; margin-bottom: 14px; }
         #meta-bp span { font-weight: 900; }
@@ -1065,16 +1073,6 @@
             #hp-text { bottom: calc(48% + 8px); font-size: 9px; }
             /* --- Lobby/Login landscape compact --- */
             .overlay { padding: 10px; align-items: flex-start; justify-content: flex-start; flex-wrap: nowrap; }
-            #lobby-screen { justify-content: center; align-items: center; }
-            #lobby-player-name { font-size: clamp(18px, 4vw, 24px); margin-bottom: 6px; }
-            .stats-grid { gap: 4px; margin: 4px 0; max-width: 300px; }
-            .stats-grid .stat-card { padding: 5px 4px; border-radius: 8px; }
-            .stats-grid .stat-val { font-size: 14px; }
-            .stats-grid .stat-label { font-size: 9px; }
-            .lobby-actions { gap: 5px; max-width: 300px; }
-            .lobby-actions .btn { padding: 9px 20px; font-size: 12px; border-radius: 10px; }
-            .install-btn { padding: 8px 16px; font-size: 11px; }
-            .install-banner { padding: 6px; font-size: 10px; margin-top: 4px; }
             .btn-sm { padding: 6px 14px; font-size: 10px; }
             .panel { padding: 14px; max-height: 90vh; }
             /* --- Clan/Leaderboard panels landscape --- */
@@ -1110,17 +1108,77 @@
             .clan-stat-card .stat-label { font-size: 9px; }
             #clan-panel .input { font-size: 13px !important; padding: 7px 10px !important; letter-spacing: 1px !important; }
             #clan-panel .btn { font-size: 10px; padding: 6px 12px; }
-            /* --- Character select / Meta landscape --- */
-            #charselect-screen, #meta-screen { justify-content: center; align-items: center; }
-            .char-grid { gap: 6px; max-width: 360px; }
-            .char-card { padding: 8px 6px; }
-            .char-icon { font-size: 24px; margin-bottom: 4px; }
-            .char-name { font-size: 12px; }
-            .char-title { font-size: 9px; }
-            .meta-row { padding: 7px 10px; gap: 8px; }
-            .meta-row-name { font-size: 12px; }
-            .meta-row-desc { font-size: 9px; }
+            /* --- Character select landscape --- */
+            #charselect-screen {
+                flex-direction: row; flex-wrap: wrap;
+                justify-content: center; align-items: center;
+                gap: 8px; padding: 10px 16px;
+            }
+            #charselect-title { font-size: 16px; margin-bottom: 0; width: 100%; text-align: center; }
+            #charselect-subtitle { font-size: 10px; margin-bottom: 6px; width: 100%; text-align: center; }
+            .char-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; max-width: 95%; width: 95%; margin-bottom: 8px; }
+            .char-card { padding: 8px 6px; border-radius: 10px; }
+            .char-icon { font-size: 22px; margin-bottom: 2px; }
+            .char-name { font-size: 11px; }
+            .char-title { font-size: 8px; margin-bottom: 4px; }
+            .char-weapon-tag { font-size: 8px; padding: 1px 6px; margin-bottom: 3px; }
+            .char-stats { gap: 4px; margin-bottom: 3px; }
+            .char-stat { font-size: 8px; }
+            .char-passive { font-size: 8px; }
+            .charselect-btns .btn { padding: 8px 20px; font-size: 11px; }
+            .charselect-btns .btn-sm { padding: 6px 14px; font-size: 10px; }
+
+            /* --- Meta upgrades landscape --- */
+            #meta-screen {
+                flex-direction: row; flex-wrap: wrap;
+                justify-content: center; align-items: flex-start;
+                align-content: center;
+                gap: 6px; padding: 8px 16px;
+            }
+            #meta-header { width: 100%; text-align: center; margin-bottom: 0; }
+            #meta-title { font-size: 16px; margin-bottom: 0; }
+            #meta-bp { font-size: 13px; margin-bottom: 6px; }
+            .meta-grid {
+                display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
+                max-width: 95%; width: 95%; margin-bottom: 8px;
+            }
+            .meta-row { padding: 7px 8px; gap: 6px; border-radius: 10px; }
+            .meta-row-icon { font-size: 16px; width: 24px; }
+            .meta-row-name { font-size: 11px; }
+            .meta-row-desc { font-size: 8px; }
             .meta-pip { width: 10px; height: 4px; }
+            .meta-buy-btn { padding: 4px 8px; font-size: 10px; }
+            #meta-back { padding: 6px 14px; font-size: 10px; }
+
+            /* --- Lobby landscape two-column --- */
+            #lobby-screen {
+                flex-direction: row; flex-wrap: wrap;
+                justify-content: center; align-items: center;
+                align-content: center;
+                gap: 4px 16px; padding: 8px 16px;
+            }
+            #lobby-welcome { width: 100%; font-size: 9px; margin-bottom: 0; }
+            #lobby-player-name { width: 100%; font-size: clamp(16px, 3.5vw, 22px); margin-bottom: 2px; }
+            #lobby-bp-badge { width: 100%; text-align: center; font-size: 11px; margin-bottom: 2px; }
+            #lobby-clan-badge { width: 100%; text-align: center; }
+            .lobby-left-col, .lobby-right-col {
+                display: flex; flex-direction: column; align-items: center;
+            }
+            .lobby-left-col { flex: 1; min-width: 0; }
+            .lobby-right-col { flex: 1; min-width: 0; }
+            .stats-grid { gap: 4px; margin: 2px 0; max-width: 100%; width: 100%; }
+            .stats-grid .stat-card { padding: 5px 4px; border-radius: 8px; }
+            .stats-grid .stat-val { font-size: 13px; }
+            .stats-grid .stat-label { font-size: 8px; }
+            .lobby-actions { gap: 4px; max-width: 100%; width: 100%; }
+            .lobby-actions .btn { padding: 8px 16px; font-size: 11px; border-radius: 10px; }
+            .lobby-actions .btn-sm { padding: 5px 12px; font-size: 10px; }
+            .install-btn { padding: 6px 12px; font-size: 10px; }
+            .install-banner { display: none !important; }
+            .clan-badge { padding: 5px 10px; gap: 4px; margin-bottom: 4px; }
+            .clan-badge .tag { font-size: 12px; }
+            .clan-badge .cname { font-size: 11px; }
+            #invite-notif-area { width: 100%; }
         }
         @media (max-width: 600px) {
             .panel { padding: 16px; max-width: 95%; }
@@ -1200,6 +1258,26 @@
             .clan-stat-card .stat-label { font-size: 8px; }
             #clan-panel .input { font-size: 12px !important; padding: 6px 8px !important; letter-spacing: 1px !important; }
             #clan-panel .btn { font-size: 9px; padding: 5px 10px; }
+            /* Character select ultra compact */
+            .char-grid { gap: 4px; }
+            .char-card { padding: 5px 4px; }
+            .char-icon { font-size: 18px; margin-bottom: 1px; }
+            .char-name { font-size: 10px; }
+            .char-title { font-size: 7px; margin-bottom: 2px; }
+            .char-weapon-tag { font-size: 7px; padding: 1px 5px; margin-bottom: 2px; }
+            .char-stats { gap: 3px; margin-bottom: 2px; }
+            .char-stat { font-size: 7px; }
+            .char-passive { font-size: 7px; }
+            /* Meta upgrade ultra compact */
+            .meta-grid { gap: 4px; }
+            .meta-row { padding: 5px 6px; gap: 5px; border-radius: 8px; }
+            .meta-row-icon { font-size: 14px; width: 20px; }
+            .meta-row-name { font-size: 10px; }
+            .meta-row-desc { font-size: 7px; }
+            .meta-pip { width: 8px; height: 3px; }
+            .meta-buy-btn { padding: 3px 7px; font-size: 9px; }
+            #meta-title { font-size: 14px; }
+            #meta-bp { font-size: 11px; margin-bottom: 4px; }
         }
 
         /* Tab navigation for panels */
@@ -1422,18 +1500,23 @@
         <div id="lobby-bp-badge">⬡ Battle Points: <span>0</span></div>
         <div id="lobby-clan-badge" class="hidden"></div>
 
-        <div class="stats-grid" id="lobby-stats"></div>
+        <div class="lobby-left-col">
+            <div class="stats-grid" id="lobby-stats"></div>
+        </div>
 
-        <div id="invite-notif-area" class="invite-notif-area"></div>
-
-        <div class="lobby-actions">
-            <button id="play-btn" class="btn btn-red" style="width:100%">▶ PLAY</button>
-            <button id="meta-btn" class="btn btn-gold" style="width:100%">⬆ UPGRADES</button>
-            <button id="clan-btn" class="btn btn-gold" style="width:100%">⚔ CLAN</button>
-            <button id="leaderboard-btn" class="btn btn-blue" style="width:100%">◈ LEADERBOARD</button>
-            <button id="install-btn" class="install-btn">📲 INSTALL APP (Fullscreen)</button>
-            <button id="logout-btn" class="btn btn-outline btn-sm" style="margin-top:8px">⏻ Logout</button>
-            <button id="exit-btn" class="btn btn-outline btn-sm" style="margin-top:2px;color:#ff4444;border-color:rgba(255,68,68,0.15);">✕ EXIT GAME</button>
+        <div class="lobby-right-col">
+            <div id="invite-notif-area" class="invite-notif-area"></div>
+            <div class="lobby-actions">
+                <button id="play-btn" class="btn btn-red" style="width:100%">▶ PLAY</button>
+                <button id="meta-btn" class="btn btn-gold" style="width:100%">⬆ UPGRADES</button>
+                <button id="clan-btn" class="btn btn-gold" style="width:100%">⚔ CLAN</button>
+                <button id="leaderboard-btn" class="btn btn-blue" style="width:100%">◈ LEADERBOARD</button>
+                <button id="install-btn" class="install-btn">📲 INSTALL APP (Fullscreen)</button>
+                <div style="display:flex;gap:8px;width:100%;justify-content:center;">
+                    <button id="logout-btn" class="btn btn-outline btn-sm" style="flex:1">⏻ Logout</button>
+                    <button id="exit-btn" class="btn btn-outline btn-sm" style="flex:1;color:#ff4444;border-color:rgba(255,68,68,0.15);">✕ EXIT</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1442,14 +1525,18 @@
         <div id="charselect-title">◆ SELECT OPERATIVE</div>
         <div id="charselect-subtitle">Choose your combat class</div>
         <div class="char-grid" id="char-grid"></div>
-        <button id="charselect-start" class="btn btn-red">▶ START MISSION</button>
-        <button id="charselect-back" class="btn btn-outline btn-sm" style="margin-top:8px">← Back</button>
+        <div class="charselect-btns">
+            <button id="charselect-back" class="btn btn-outline btn-sm">← Back</button>
+            <button id="charselect-start" class="btn btn-red">▶ START MISSION</button>
+        </div>
     </div>
 
     <!-- ========== META UPGRADE SCREEN ========== -->
     <div id="meta-screen" class="overlay">
-        <div id="meta-title">⬆ UPGRADES</div>
-        <div id="meta-bp">⬡ Battle Points: <span>0</span></div>
+        <div id="meta-header">
+            <div id="meta-title">⬆ UPGRADES</div>
+            <div id="meta-bp">⬡ Battle Points: <span>0</span></div>
+        </div>
         <div class="meta-grid" id="meta-grid"></div>
         <button id="meta-back" class="btn btn-outline btn-sm">← Back to Lobby</button>
     </div>
@@ -1504,8 +1591,8 @@
         <div class="ios-arrow"></div>
     </div>
 
-    <script src="social.js?v=22"></script>
-    <script src="game.js?v=22"></script>
+    <script src="social.js?v=22a"></script>
+    <script src="game.js?v=22a"></script>
 
     <!-- PWA: Service Worker + Install Prompt -->
     <script>
