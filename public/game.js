@@ -32,6 +32,44 @@ const CONFIG = {
 };
 
 // ============================================================
+// CHARACTER DEFINITIONS
+// ============================================================
+const CHARACTERS = {
+    kael: {
+        id: 'kael', name: 'Kael', title: 'Blade Dancer',
+        icon: '🗡️', color: '#cccccc', accentColor: '#88ccff',
+        desc: 'Swift knife fighter. High speed, lower HP.',
+        weapon: 'throwingKnife',
+        baseHp: 85, baseSpeed: 230,
+        passive: { name: 'Blade Fury', desc: '+20% projectile speed' },
+    },
+    ember: {
+        id: 'ember', name: 'Ember', title: 'Pyromancer',
+        icon: '🔥', color: '#ff6622', accentColor: '#ffaa44',
+        desc: 'Explosive fireballs. Balanced stats.',
+        weapon: 'fireball',
+        baseHp: 100, baseSpeed: 200,
+        passive: { name: 'Inferno', desc: '+25% explosion radius' },
+    },
+    volt: {
+        id: 'volt', name: 'Volt', title: 'Storm Caller',
+        icon: '⚡', color: '#ffee44', accentColor: '#aaeeff',
+        desc: 'Chain lightning. High damage, slower.',
+        weapon: 'lightningBolt',
+        baseHp: 95, baseSpeed: 190,
+        passive: { name: 'Overcharge', desc: '+1 chain target' },
+    },
+    grim: {
+        id: 'grim', name: 'Grim', title: 'Death Warden',
+        icon: '🧄', color: '#88ff88', accentColor: '#66ffaa',
+        desc: 'Damage aura. Tanky, slow.',
+        weapon: 'garlicAura',
+        baseHp: 130, baseSpeed: 175,
+        passive: { name: 'Soul Siphon', desc: '+1 HP/sec regen' },
+    },
+};
+
+// ============================================================
 // ============================================================
 // AUDIO SYSTEM (MP3 background music + Web Audio API SFX)
 // ============================================================
@@ -1181,14 +1219,43 @@ class Game {
         this.paused = false;
         document.getElementById('pause-screen').classList.remove('active');
 
+        // Get character + upgrades from social system
+        let charId = 'kael';
+        let upgrades = { maxHp: 0, damage: 0, speed: 0, armor: 0, xpGain: 0 };
+        if (typeof social !== 'undefined' && social.user) {
+            charId = social.user.selectedCharacter || 'kael';
+            upgrades = social.user.upgrades || upgrades;
+        }
+        const charDef = CHARACTERS[charId] || CHARACTERS.kael;
+        this.selectedCharacter = charId;
+
+        // Base stats from character
+        let hp = charDef.baseHp;
+        let speed = charDef.baseSpeed;
+        let armor = 0;
+        let regen = 0;
+        let mightMult = 1;
+        let xpMult = 1;
+
+        // Apply meta-upgrades
+        hp += upgrades.maxHp * 10;
+        mightMult *= (1 + upgrades.damage * 0.05);
+        speed *= (1 + upgrades.speed * 0.03);
+        armor += upgrades.armor * 2;
+        xpMult += upgrades.xpGain * 0.08;
+
+        // Apply character passive
+        if (charId === 'grim') regen += 1;
+
         this.player = {
             x: CONFIG.WORLD_SIZE / 2, y: CONFIG.WORLD_SIZE / 2,
-            hp: CONFIG.PLAYER_MAX_HP, maxHp: CONFIG.PLAYER_MAX_HP,
-            speed: CONFIG.PLAYER_SPEED, xp: 0, level: 1,
-            pickupRadius: CONFIG.PLAYER_PICKUP_RADIUS, armor: 0, regen: 0, mightMult: 1,
-            invincibleTimer: 0, weapons: [], passiveUpgrades: {}
+            hp: hp, maxHp: hp,
+            speed: speed, xp: 0, level: 1,
+            pickupRadius: CONFIG.PLAYER_PICKUP_RADIUS, armor: armor, regen: regen, mightMult: mightMult,
+            invincibleTimer: 0, weapons: [], passiveUpgrades: {},
+            xpMult: xpMult,
         };
-        this.player.weapons.push(new Weapon('magicOrb'));
+        this.player.weapons.push(new Weapon(charDef.weapon));
 
         this.camera = { x: this.player.x - this.canvas.width / 2, y: this.player.y - this.canvas.height / 2 };
         this.playerTrail = [];
@@ -1397,7 +1464,9 @@ class Game {
     }
 
     fireProjectileWeapon(w) {
-        const p = this.player, count = w.getCount(), damage = w.getDamage() * p.mightMult, spd = 500;
+        const p = this.player, count = w.getCount(), damage = w.getDamage() * p.mightMult;
+        let spd = 500;
+        if (this.selectedCharacter === 'kael') spd *= 1.2; // Blade Fury passive
         for (let i = 0; i < count; i++) {
             const spread = (i - (count - 1) / 2) * 0.15, dir = Math.atan2(this.lastFacing.y, this.lastFacing.x) + spread;
             this.projectiles.push(new Projectile(p.x, p.y, Math.cos(dir) * spd, Math.sin(dir) * spd, damage, w.color, 4, 1 + Math.floor(w.level / 3), 2));
@@ -1406,7 +1475,9 @@ class Game {
     }
 
     fireLightning(w) {
-        const p = this.player, count = w.getCount(), damage = w.getDamage() * p.mightMult;
+        const p = this.player, damage = w.getDamage() * p.mightMult;
+        let count = w.getCount();
+        if (this.selectedCharacter === 'volt') count += 1; // Overcharge passive
         const sorted = [...this.enemies].sort((a, b) => dist(a, p) - dist(b, p)).slice(0, count);
         for (const t of sorted) {
             if (t.takeDamage(damage, null)) this.killEnemy(t);
@@ -1442,7 +1513,10 @@ class Game {
         for (let i = 0; i < count; i++) {
             const dir = this.enemies.length > 0 ? angle(p, randChoice(this.enemies)) : Math.random() * Math.PI * 2;
             const proj = new Projectile(p.x, p.y, Math.cos(dir) * spd, Math.sin(dir) * spd, damage, w.color, 8, 1, 3);
-            proj.isFireball = true; proj.explosionRadius = 60 + w.level * 5; this.projectiles.push(proj);
+            proj.isFireball = true;
+            proj.explosionRadius = 60 + w.level * 5;
+            if (this.selectedCharacter === 'ember') proj.explosionRadius *= 1.25; // Inferno passive
+            this.projectiles.push(proj);
         }
         this.audio.play('hit');
     }
@@ -1546,7 +1620,7 @@ class Game {
     updateGems(dt) {
         this.gems = this.gems.filter(g => {
             if (g.update(dt, this.player)) {
-                this.player.xp += g.value; this.audio.play('pickup');
+                this.player.xp += Math.floor(g.value * (this.player.xpMult || 1)); this.audio.play('pickup');
                 for (let i = 0; i < 3; i++) this.addParticle(g.x, g.y, g.color, 50, 0.3, 2);
                 this.checkLevelUp(); return false;
             }
@@ -2002,6 +2076,8 @@ class Game {
         }
 
         document.getElementById('gameover-score').innerHTML = `Score: <span>${score.toLocaleString()}</span>${serverResult && score >= serverResult.bestScore ? ' 🏆 NEW BEST!' : ''}`;
+        const bpEarned = serverResult && serverResult.bpEarned ? serverResult.bpEarned : 0;
+        document.getElementById('gameover-bp').innerHTML = bpEarned > 0 ? `⬡ +${bpEarned} Battle Points earned!` : '';
         document.getElementById('gameover-stats').innerHTML = `
             Survived: <span>${formatTime(this.gameTime)}</span><br>
             Enemies Slain: <span>${this.kills}</span><br>

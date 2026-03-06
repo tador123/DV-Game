@@ -784,6 +784,104 @@
         .upgrade-card .desc { color: #aaa; font-size: 11px; line-height: 1.3; }
         .upgrade-card .new-badge { display: inline-block; background: #ff4444; color: #fff; font-size: 9px; padding: 2px 7px; border-radius: 10px; margin-bottom: 6px; font-weight: bold; }
 
+        /* ========== CHARACTER SELECT SCREEN ========== */
+        #charselect-screen {
+            background: radial-gradient(ellipse at 30% 20%, rgba(0,255,200,0.04) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(120,0,255,0.04) 0%, transparent 50%),
+                        rgba(6,10,16,0.97);
+            z-index: 260; padding: 16px; gap: 0;
+        }
+        #charselect-title { color: #00ffc8; font-size: clamp(20px, 5vw, 30px); font-weight: 900; text-shadow: 0 0 20px rgba(0,255,200,0.4); margin-bottom: 4px; letter-spacing: 2px; }
+        #charselect-subtitle { color: rgba(0,255,200,0.4); font-size: 12px; margin-bottom: 16px; letter-spacing: 1px; }
+        .char-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-width: 400px; width: 90%; margin-bottom: 16px; }
+        .char-card {
+            padding: 14px 10px;
+            background: linear-gradient(135deg, rgba(0,255,200,0.04), rgba(20,30,40,0.95));
+            border: 2px solid rgba(0,255,200,0.15);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .char-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 60%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,200,0.06), transparent);
+            transition: none;
+        }
+        .char-card:hover::before { animation: shimmer 0.8s ease; }
+        .char-card:hover { border-color: rgba(0,255,200,0.5); transform: translateY(-2px); }
+        .char-card.selected { border-color: #00ffc8; box-shadow: 0 0 24px rgba(0,255,200,0.25), inset 0 0 20px rgba(0,255,200,0.05); }
+        .char-card.selected::after {
+            content: '✓';
+            position: absolute; top: 6px; right: 8px;
+            color: #00ffc8; font-size: 16px; font-weight: 900;
+        }
+        .char-icon { font-size: 32px; margin-bottom: 6px; }
+        .char-name { color: #fff; font-size: 14px; font-weight: 800; margin-bottom: 2px; }
+        .char-title { color: rgba(0,255,200,0.5); font-size: 10px; margin-bottom: 8px; letter-spacing: 0.5px; }
+        .char-weapon-tag { display: inline-block; background: rgba(0,255,200,0.08); border: 1px solid rgba(0,255,200,0.2); color: #00ffc8; font-size: 10px; padding: 2px 8px; border-radius: 20px; margin-bottom: 6px; }
+        .char-stats { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 6px; }
+        .char-stat { font-size: 9px; color: #aaa; }
+        .char-stat span { color: #fff; font-weight: 700; }
+        .char-passive { font-size: 9px; color: rgba(255,215,0,0.7); font-style: italic; }
+        #charselect-start { margin-top: 4px; }
+
+        /* ========== META UPGRADE SCREEN (BP) ========== */
+        #meta-screen {
+            background: radial-gradient(ellipse at 30% 20%, rgba(255,215,0,0.03) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(120,0,255,0.04) 0%, transparent 50%),
+                        rgba(6,10,16,0.97);
+            z-index: 260; padding: 16px; gap: 0;
+        }
+        #meta-title { color: #ffd700; font-size: clamp(20px, 5vw, 28px); font-weight: 900; text-shadow: 0 0 20px rgba(255,215,0,0.4); margin-bottom: 2px; letter-spacing: 2px; }
+        #meta-bp { color: #ffd700; font-size: 16px; margin-bottom: 14px; }
+        #meta-bp span { font-weight: 900; }
+        .meta-grid { display: flex; flex-direction: column; gap: 8px; width: 90%; max-width: 400px; margin-bottom: 16px; }
+        .meta-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px;
+            background: linear-gradient(135deg, rgba(255,215,0,0.04), rgba(20,30,40,0.95));
+            border: 1px solid rgba(255,215,0,0.15);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+        .meta-row:hover { border-color: rgba(255,215,0,0.35); }
+        .meta-row-icon { font-size: 22px; width: 32px; text-align: center; }
+        .meta-row-info { flex: 1; min-width: 0; }
+        .meta-row-name { color: #fff; font-size: 13px; font-weight: 700; }
+        .meta-row-desc { color: #aaa; font-size: 10px; }
+        .meta-pips { display: flex; gap: 3px; margin-top: 4px; }
+        .meta-pip { width: 14px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); }
+        .meta-pip.filled { background: #ffd700; box-shadow: 0 0 6px rgba(255,215,0,0.4); }
+        .meta-buy-btn {
+            padding: 6px 12px; font-size: 11px; font-weight: 800;
+            background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,143,0,0.1));
+            border: 1px solid rgba(255,215,0,0.3);
+            border-radius: 8px; color: #ffd700; cursor: pointer;
+            transition: all 0.2s ease; white-space: nowrap;
+            font-family: inherit;
+        }
+        .meta-buy-btn:hover { border-color: #ffd700; transform: scale(1.05); }
+        .meta-buy-btn:disabled { opacity: 0.35; cursor: default; transform: none; }
+        .meta-buy-btn.maxed { background: rgba(0,255,200,0.08); border-color: rgba(0,255,200,0.3); color: #00ffc8; }
+
+        /* ========== BP BADGE IN LOBBY ========== */
+        #lobby-bp-badge {
+            color: #ffd700;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-shadow: 0 0 8px rgba(255,215,0,0.3);
+        }
+        #lobby-bp-badge span { font-weight: 900; }
+
+        /* ========== BP EARNED ON GAME OVER ========== */
+        #gameover-bp { color: #ffd700; font-size: 16px; font-weight: 800; margin-bottom: 8px; text-shadow: 0 0 10px rgba(255,215,0,0.3); }
+
         /* ========== GAME OVER ========== */
         #gameover-screen { background: rgba(10,0,0,0.92); z-index: 270; }
         #gameover-title { font-size: clamp(36px, 9vw, 52px); font-weight: 900; color: #ff3333; text-shadow: 0 0 30px rgba(255,0,0,0.5); margin-bottom: 16px; }
@@ -1012,6 +1110,17 @@
             .clan-stat-card .stat-label { font-size: 9px; }
             #clan-panel .input { font-size: 13px !important; padding: 7px 10px !important; letter-spacing: 1px !important; }
             #clan-panel .btn { font-size: 10px; padding: 6px 12px; }
+            /* --- Character select / Meta landscape --- */
+            #charselect-screen, #meta-screen { justify-content: center; align-items: center; }
+            .char-grid { gap: 6px; max-width: 360px; }
+            .char-card { padding: 8px 6px; }
+            .char-icon { font-size: 24px; margin-bottom: 4px; }
+            .char-name { font-size: 12px; }
+            .char-title { font-size: 9px; }
+            .meta-row { padding: 7px 10px; gap: 8px; }
+            .meta-row-name { font-size: 12px; }
+            .meta-row-desc { font-size: 9px; }
+            .meta-pip { width: 10px; height: 4px; }
         }
         @media (max-width: 600px) {
             .panel { padding: 16px; max-width: 95%; }
@@ -1310,6 +1419,7 @@
         <canvas id="lobby-beat-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;"></canvas>
         <div id="lobby-welcome">⟐ OPERATIVE ONLINE ⟐</div>
         <div id="lobby-player-name">Player</div>
+        <div id="lobby-bp-badge">⬡ Battle Points: <span>0</span></div>
         <div id="lobby-clan-badge" class="hidden"></div>
 
         <div class="stats-grid" id="lobby-stats"></div>
@@ -1318,12 +1428,30 @@
 
         <div class="lobby-actions">
             <button id="play-btn" class="btn btn-red" style="width:100%">▶ PLAY</button>
+            <button id="meta-btn" class="btn btn-gold" style="width:100%">⬆ UPGRADES</button>
             <button id="clan-btn" class="btn btn-gold" style="width:100%">⚔ CLAN</button>
             <button id="leaderboard-btn" class="btn btn-blue" style="width:100%">◈ LEADERBOARD</button>
             <button id="install-btn" class="install-btn">📲 INSTALL APP (Fullscreen)</button>
             <button id="logout-btn" class="btn btn-outline btn-sm" style="margin-top:8px">⏻ Logout</button>
             <button id="exit-btn" class="btn btn-outline btn-sm" style="margin-top:2px;color:#ff4444;border-color:rgba(255,68,68,0.15);">✕ EXIT GAME</button>
         </div>
+    </div>
+
+    <!-- ========== CHARACTER SELECT SCREEN ========== -->
+    <div id="charselect-screen" class="overlay">
+        <div id="charselect-title">◆ SELECT OPERATIVE</div>
+        <div id="charselect-subtitle">Choose your combat class</div>
+        <div class="char-grid" id="char-grid"></div>
+        <button id="charselect-start" class="btn btn-red">▶ START MISSION</button>
+        <button id="charselect-back" class="btn btn-outline btn-sm" style="margin-top:8px">← Back</button>
+    </div>
+
+    <!-- ========== META UPGRADE SCREEN ========== -->
+    <div id="meta-screen" class="overlay">
+        <div id="meta-title">⬆ UPGRADES</div>
+        <div id="meta-bp">⬡ Battle Points: <span>0</span></div>
+        <div class="meta-grid" id="meta-grid"></div>
+        <button id="meta-back" class="btn btn-outline btn-sm">← Back to Lobby</button>
     </div>
 
     <!-- ========== CLAN SCREEN ========== -->
@@ -1354,6 +1482,7 @@
     <div id="gameover-screen" class="overlay">
         <div id="gameover-title">☠ YOU DIED</div>
         <div id="gameover-score"></div>
+        <div id="gameover-bp"></div>
         <div id="gameover-stats"></div>
         <div class="gameover-btns">
             <button id="restart-btn" class="btn btn-red">↻ PLAY AGAIN</button>
@@ -1375,8 +1504,8 @@
         <div class="ios-arrow"></div>
     </div>
 
-    <script src="social.js?v=21a"></script>
-    <script src="game.js?v=21a"></script>
+    <script src="social.js?v=22"></script>
+    <script src="game.js?v=22"></script>
 
     <!-- PWA: Service Worker + Install Prompt -->
     <script>

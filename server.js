@@ -96,6 +96,9 @@ app.post('/api/register', async (req, res) => {
         country: (country && typeof country === 'string' && country.length === 2) ? country.toUpperCase() : null,
         pendingClanInvites: [],
         notifications: [],
+        battlePoints: 0,
+        selectedCharacter: 'kael',
+        upgrades: { maxHp: 0, damage: 0, speed: 0, armor: 0, xpGain: 0 },
     };
 
     db.users[token] = user;
@@ -223,8 +226,61 @@ app.post('/api/score', (req, res) => {
         }
     }
 
+    // Award Battle Points
+    const bpEarned = Math.floor(kills / 5) + Math.floor(time / 15) + Math.floor(level * 2);
+    if (!user.battlePoints) user.battlePoints = 0;
+    user.battlePoints += bpEarned;
+
     saveData(db);
-    res.json({ score, bestScore: user.bestScore, isNewBest, user: sanitizeUser(user) });
+    res.json({ score, bestScore: user.bestScore, isNewBest, bpEarned, user: sanitizeUser(user) });
+});
+
+// ============================================================
+// CHARACTER & UPGRADES
+// ============================================================
+const UPGRADE_DEFS = {
+    maxHp:   { label: 'Max HP',    maxLevel: 10, baseCost: 8  },
+    damage:  { label: 'Damage',    maxLevel: 10, baseCost: 10 },
+    speed:   { label: 'Speed',     maxLevel: 10, baseCost: 8  },
+    armor:   { label: 'Armor',     maxLevel: 10, baseCost: 12 },
+    xpGain:  { label: 'XP Gain',   maxLevel: 10, baseCost: 15 },
+};
+
+// Select character
+app.post('/api/user/character', (req, res) => {
+    const { token, characterId } = req.body;
+    const user = db.users[token];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const validChars = ['kael', 'ember', 'volt', 'grim'];
+    if (!validChars.includes(characterId)) return res.status(400).json({ error: 'Invalid character' });
+    user.selectedCharacter = characterId;
+    saveData(db);
+    res.json({ character: characterId, user: sanitizeUser(user) });
+});
+
+// Purchase upgrade
+app.post('/api/user/upgrade', (req, res) => {
+    const { token, upgradeId } = req.body;
+    const user = db.users[token];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const def = UPGRADE_DEFS[upgradeId];
+    if (!def) return res.status(400).json({ error: 'Invalid upgrade' });
+
+    // Initialize if missing (legacy accounts)
+    if (!user.upgrades) user.upgrades = { maxHp: 0, damage: 0, speed: 0, armor: 0, xpGain: 0 };
+    if (!user.battlePoints) user.battlePoints = 0;
+
+    const currentLevel = user.upgrades[upgradeId] || 0;
+    if (currentLevel >= def.maxLevel) return res.status(400).json({ error: 'Already at max level' });
+
+    const cost = def.baseCost * (currentLevel + 1);
+    if (user.battlePoints < cost) return res.status(400).json({ error: `Need ${cost} BP (have ${user.battlePoints})` });
+
+    user.battlePoints -= cost;
+    user.upgrades[upgradeId] = currentLevel + 1;
+    saveData(db);
+    res.json({ upgrade: upgradeId, level: user.upgrades[upgradeId], battlePoints: user.battlePoints, user: sanitizeUser(user) });
 });
 
 // ============================================================

@@ -308,12 +308,20 @@ class Social {
     // LOBBY
     // ========================================================
     bindLobbyEvents() {
-        document.getElementById('play-btn').addEventListener('click', () => this.startGame());
+        document.getElementById('play-btn').addEventListener('click', () => this.showCharacterSelect());
         document.getElementById('clan-btn').addEventListener('click', () => this.showClanScreen());
         document.getElementById('leaderboard-btn').addEventListener('click', () => this.showLeaderboard());
         document.getElementById('logout-btn').addEventListener('click', () => this.logout());
-        document.getElementById('restart-btn').addEventListener('click', () => this.startGame());
+        document.getElementById('restart-btn').addEventListener('click', () => this.showCharacterSelect());
         document.getElementById('back-lobby-btn').addEventListener('click', () => this.backToLobby());
+
+        // Meta upgrades
+        document.getElementById('meta-btn').addEventListener('click', () => this.showMetaScreen());
+        document.getElementById('meta-back').addEventListener('click', () => this.closeMetaScreen());
+
+        // Character select
+        document.getElementById('charselect-start').addEventListener('click', () => this.confirmCharacterAndPlay());
+        document.getElementById('charselect-back').addEventListener('click', () => this.closeCharacterSelect());
 
         // Exit game button
         document.getElementById('exit-btn').addEventListener('click', () => this.exitGame());
@@ -340,6 +348,10 @@ class Social {
         }
 
         document.getElementById('lobby-player-name').textContent = this.user.name;
+
+        // BP badge
+        const bp = this.user.battlePoints || 0;
+        document.getElementById('lobby-bp-badge').innerHTML = `⬡ Battle Points: <span>${bp}</span>`;
 
         // Stats
         const statsEl = document.getElementById('lobby-stats');
@@ -422,6 +434,154 @@ class Social {
 
         // Navigate away — actually leaves the page
         window.location.replace('about:blank');
+    }
+
+    // ========================================================
+    // CHARACTER SELECT
+    // ========================================================
+    showCharacterSelect() {
+        this._stopNotifPolling();
+        // Stop lobby music
+        if (typeof game !== 'undefined' && game.audio) {
+            game.audio.stopLobbyMusic();
+        }
+        document.getElementById('lobby-screen').classList.remove('active');
+        document.getElementById('gameover-screen').classList.remove('active');
+
+        const characters = [
+            { id: 'kael', icon: '\u{1F5E1}\uFE0F', name: 'Kael', title: 'Blade Dancer', weapon: 'Knives', hp: 85, speed: 230, passive: 'Blade Fury: +20% projectile speed' },
+            { id: 'ember', icon: '\u{1F525}', name: 'Ember', title: 'Pyromancer', weapon: 'Fireball', hp: 100, speed: 200, passive: 'Inferno: +25% explosion radius' },
+            { id: 'volt', icon: '\u26A1', name: 'Volt', title: 'Storm Caller', weapon: 'Lightning', hp: 95, speed: 190, passive: 'Overcharge: +1 chain target' },
+            { id: 'grim', icon: '\u{1F9C4}', name: 'Grim', title: 'Death Warden', weapon: 'Garlic Aura', hp: 130, speed: 175, passive: 'Soul Siphon: +1 HP/sec regen' },
+        ];
+
+        const selected = this.user.selectedCharacter || 'kael';
+        const grid = document.getElementById('char-grid');
+        grid.innerHTML = characters.map(c => `
+            <div class="char-card${c.id === selected ? ' selected' : ''}" data-char="${c.id}">
+                <div class="char-icon">${c.icon}</div>
+                <div class="char-name">${c.name}</div>
+                <div class="char-title">${c.title}</div>
+                <div class="char-weapon-tag">${c.weapon}</div>
+                <div class="char-stats">
+                    <div class="char-stat">HP <span>${c.hp}</span></div>
+                    <div class="char-stat">SPD <span>${c.speed}</span></div>
+                </div>
+                <div class="char-passive">${c.passive}</div>
+            </div>
+        `).join('');
+
+        // Click handlers
+        grid.querySelectorAll('.char-card').forEach(card => {
+            card.addEventListener('click', () => {
+                grid.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+            });
+        });
+
+        document.getElementById('charselect-screen').classList.add('active');
+    }
+
+    closeCharacterSelect() {
+        document.getElementById('charselect-screen').classList.remove('active');
+        this.showLobby();
+    }
+
+    async confirmCharacterAndPlay() {
+        const selected = document.getElementById('char-grid').querySelector('.char-card.selected');
+        if (!selected) return;
+
+        const charId = selected.dataset.char;
+
+        // Save to server
+        try {
+            const data = await this.api('POST', '/api/user/character', { token: this.token, character: charId });
+            this.user = data.user;
+        } catch (e) {
+            console.error('Character select failed:', e);
+        }
+
+        // Close screen and start game
+        document.getElementById('charselect-screen').classList.remove('active');
+        if (typeof game !== 'undefined') {
+            game.startGame();
+        }
+    }
+
+    // ========================================================
+    // META UPGRADES (BATTLE POINTS)
+    // ========================================================
+    showMetaScreen() {
+        this._stopNotifPolling();
+        if (typeof game !== 'undefined' && game.audio) {
+            game.audio.stopLobbyMusic();
+        }
+        document.getElementById('lobby-screen').classList.remove('active');
+
+        this._renderMetaUpgrades();
+        document.getElementById('meta-screen').classList.add('active');
+    }
+
+    closeMetaScreen() {
+        document.getElementById('meta-screen').classList.remove('active');
+        this.showLobby();
+    }
+
+    _renderMetaUpgrades() {
+        const upgrades = this.user.upgrades || { maxHp: 0, damage: 0, speed: 0, armor: 0, xpGain: 0 };
+        const bp = this.user.battlePoints || 0;
+
+        document.getElementById('meta-bp').innerHTML = `⬡ Battle Points: <span>${bp}</span>`;
+
+        const defs = [
+            { key: 'maxHp', icon: '❤️', name: 'Max HP', desc: '+10 HP per level', baseCost: 8, maxLvl: 10 },
+            { key: 'damage', icon: '⚔️', name: 'Damage', desc: '+5% damage per level', baseCost: 10, maxLvl: 10 },
+            { key: 'speed', icon: '💨', name: 'Speed', desc: '+3% speed per level', baseCost: 8, maxLvl: 10 },
+            { key: 'armor', icon: '🛡️', name: 'Armor', desc: '+2 armor per level', baseCost: 12, maxLvl: 10 },
+            { key: 'xpGain', icon: '✨', name: 'XP Gain', desc: '+8% XP per level', baseCost: 15, maxLvl: 10 },
+        ];
+
+        const grid = document.getElementById('meta-grid');
+        grid.innerHTML = defs.map(d => {
+            const lvl = upgrades[d.key] || 0;
+            const cost = d.baseCost * (lvl + 1);
+            const maxed = lvl >= d.maxLvl;
+            const canBuy = !maxed && bp >= cost;
+
+            let pips = '';
+            for (let i = 0; i < d.maxLvl; i++) {
+                pips += `<div class="meta-pip${i < lvl ? ' filled' : ''}"></div>`;
+            }
+
+            return `
+                <div class="meta-row" data-key="${d.key}">
+                    <div class="meta-row-icon">${d.icon}</div>
+                    <div class="meta-row-info">
+                        <div class="meta-row-name">${d.name} <span style="color:#888;font-size:10px;">Lv.${lvl}</span></div>
+                        <div class="meta-row-desc">${d.desc}</div>
+                        <div class="meta-pips">${pips}</div>
+                    </div>
+                    <button class="meta-buy-btn${maxed ? ' maxed' : ''}" data-key="${d.key}" ${!canBuy ? 'disabled' : ''}>
+                        ${maxed ? 'MAX' : `${cost} BP`}
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+        // Bind buy buttons
+        grid.querySelectorAll('.meta-buy-btn:not(:disabled):not(.maxed)').forEach(btn => {
+            btn.addEventListener('click', () => this._buyUpgrade(btn.dataset.key));
+        });
+    }
+
+    async _buyUpgrade(key) {
+        try {
+            const data = await this.api('POST', '/api/user/upgrade', { token: this.token, upgrade: key });
+            this.user = data.user;
+            this._renderMetaUpgrades();
+        } catch (e) {
+            this.toast(e.message || 'Upgrade failed');
+        }
     }
 
     // ========================================================
